@@ -1,0 +1,23 @@
+{
+  "name": "zao-woocommerce-quickbooks-online-integration",
+  "version": "0.1.0",
+  "main": "/",
+  "license": "GPL-2.0+",
+  "ignore": [
+    "**/.*",
+    "*.md",
+    "assets/css/sass/*",
+    "assets/css/src/*",
+    "assets/js/src/*",
+    "assets/js/vendor/*",
+    "images/src/*",
+    "tests",
+    "bootstrap.php",
+    "Gruntfile.js",
+    "package.json",
+    "composer.json",
+    "phpunit.xml.dist"
+  ],
+  "devDependencies": {},
+  "keywords": []
+}
