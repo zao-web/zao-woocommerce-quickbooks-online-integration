@@ -22,9 +22,6 @@ class Plugin extends Base {
 	}
 
 	public function init() {
-
 	}
 
 }
-
-Plugin::get_instance();
