@@ -4,6 +4,9 @@ namespace Zao\WC_QBO_Integration;
 class Plugin extends Base {
 
 	protected static $single_instance = null;
+	protected $customers;
+	protected $users;
+	protected $invoices;
 
 	/**
 	 * Creates or returns an instance of this class.
@@ -19,9 +22,20 @@ class Plugin extends Base {
 	}
 
 	protected function __construct() {
+		$this->customers = new Services\Customers();
+		$this->invoices = new Services\Invoices();
+		$this->users = new Users( $this->customers );
 	}
 
 	public function init() {
+		add_action( 'qbo_connect_initiated', array( $this, 'api_init' ) );
+		$this->customers->init();
+		$this->invoices->init();
+		$this->users->init();
+	}
+
+	public function api_init( $api ) {
+		Services\Base::set_api( $api );
 	}
 
 }

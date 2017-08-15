@@ -16,4 +16,12 @@ abstract class Base {
 	public function __get( $field ) {
 		return $this->{$field};
 	}
+
+	public static function _param( $param, $default = '' ) {
+		return isset( $_REQUEST[ $param ] ) ? $_REQUEST[ $param ] : $default;
+	}
+
+	public static function _param_is( $param, $val_to_check ) {
+		return isset( $_REQUEST[ $param ] ) && $val_to_check === $_REQUEST[ $param ];
+	}
 }

@@ -19,10 +19,11 @@
 		"php": ">=5.6"
 	},
 	"require-dev": {
-		"antecedent/patchwork"  : "1.2.*",
-		"phpunit/phpunit"       : "*@stable",
-		"brianium/paratest"     : "dev-master",
-		"10up/wp_mock"          : "dev-master",
-		"quickbooks/v3-php-sdk" : "^3.3"
+		"zao-web/qbo-connect-ui": "dev-master"
+	},
+	"autoload": {
+		"classmap": ["vendor/zao-web/qbo-connect-ui/","vendor/zao-web/qbo-connect/"],
+		"files": ["vendor/zao-web/qbo-connect-ui/qbo-connect-ui.php","vendor/webdevstudios/cmb2/init.php"]
 	}
+
 }
