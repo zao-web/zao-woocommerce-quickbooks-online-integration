@@ -14,7 +14,9 @@
 
 <div class="wrap qbo-customer-search-wrap">
 	<h2><?php echo get_admin_page_title(); ?></h2>
-	<p class="qb-company-name"><?php printf( __( 'Your company: <em>%s</em> ', 'zwqoi' ), $this->company_name() ); ?></p>
+	<?php if ( self::$api ) { ?>
+		<p class="qb-company-name"><?php printf( __( 'Your company: <em>%s</em> ', 'zwqoi' ), $this->company_name() ); ?></p>
+	<?php } ?>
 
 	<?php if ( ! function_exists( 'qbo_connect_ui' ) || ! qbo_connect_ui()->settings ) { ?>
 
