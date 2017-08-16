@@ -35,7 +35,7 @@ class Users extends Base {
 			array( 'redirect' => urlencode( remove_query_arg( 'test' ) ) )
 		);
 
-		echo '<h2>' . __( 'Connected Quickbooks User', 'zwqoi' ) . '</h2>';
+		echo '<h2>' . __( 'Connected Quickbooks Customer', 'zwqoi' ) . '</h2>';
 		echo '<p><em>' . $this->customers->get_customer_company_name( $customer ) . '</em></p>';
 		echo '<p>' . $update_button . '</p>';
 	}

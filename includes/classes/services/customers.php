@@ -23,8 +23,8 @@ class Customers extends Base {
 
 	public function register_qb_customer_search_page() {
 		add_users_page(
-			__( 'QuickBooks User Search', 'zwqoi' ),
-			__( 'QuickBooks Users', 'zwqoi' ),
+			__( 'QuickBooks Customer Search', 'zwqoi' ),
+			__( 'QuickBooks Customers', 'zwqoi' ),
 			'manage_options',
 			self::$admin_page_slug,
 			array( $this, 'customer_search_page' )
@@ -441,7 +441,7 @@ class Customers extends Base {
 	}
 
 	public static function update_quickbooks_user_button( $user_id, $customer_id, $query_args = array() ) {
-		return '<a class="button-secondary update-user-from-qb" onclick="return confirm(\'' . esc_attr__( 'This will replace the WordPress user data with data from your QuickBooks database. Are you sure you want to proceed?', 'zwqoi' ) . '\')" href="' . esc_url( self::update_user_url( $user_id, $customer_id, $query_args ) ) . '">' . __( 'Update user from QuickBooks', 'zwqoi' ) . '</a>';
+		return '<a class="button-secondary update-user-from-qb" onclick="return confirm(\'' . esc_attr__( 'This will replace the WordPress user data with the QuickBooks Customer data. Are you sure you want to proceed?', 'zwqoi' ) . '\')" href="' . esc_url( self::update_user_url( $user_id, $customer_id, $query_args ) ) . '">' . __( 'Update user from QuickBooks', 'zwqoi' ) . '</a>';
 	}
 
 	public static function update_user_url( $user_id, $customer_id, $query_args = array() ) {
