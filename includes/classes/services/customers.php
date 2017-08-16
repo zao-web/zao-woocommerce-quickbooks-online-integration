@@ -527,4 +527,27 @@ class Customers extends Base {
 		return is_array( $results ) ? end( $results ) : $results;
 	}
 
+	public static function get_users_by_customer_ids( $customer_ids ) {
+		$args = array(
+			'meta_query' => array(
+				array(
+					'key'     => '_qb_customer_id',
+					'value'   => (array) $customer_ids,
+					'compare' => 'IN',
+				),
+			),
+			'number'        => count( $customer_ids ),
+			'no_found_rows' => true,
+		);
+
+		$by_id = new \WP_User_Query( $args );
+
+		$results = $by_id->get_results();
+
+		if ( empty( $results ) ) {
+			return false;
+		}
+
+		return $results;
+	}
 }
