@@ -30,6 +30,7 @@
 
 		<form method="POST" id="qbo-customer-search-form" action="<?php echo esc_url( self::settings_url() ); ?>">
 			<?php wp_nonce_field( self::$admin_page_slug, self::$admin_page_slug ); ?>
+			<?php do_action( 'zwqoi_customer_search_page_form', $this ); ?>
 			<input class="large-text" placeholder="<?php esc_attr_e( 'Company Name or Id', 'zwqoi' ); ?>" type="text" name="search_term" value="<?php echo esc_attr( self::_param( 'search_term' ) ); ?>">
 			<p><?php _e( 'Search by:', 'zwqoi' ); ?>
 				&nbsp;

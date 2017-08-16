@@ -467,12 +467,15 @@ class Customers extends Base {
 
 	public static function update_user_url( $user_id, $customer_id, $query_args = array() ) {
 		$query_args['update_user'] = $user_id;
+		$url = add_query_arg( $query_args, self::import_customer_url( $customer_id ) );
 
-		return add_query_arg( $query_args, self::import_customer_url( $customer_id ) );
+		return apply_filters( 'zwqoi_update_user_with_quickbooks_customer_url', $url, $user_id, $customer_id, $query_args );
 	}
 
 	public static function import_customer_url( $customer_id ) {
-		return wp_nonce_url( self::settings_url( array( 'import_customer' => $customer_id ) ), self::$admin_page_slug, 'nonce' );
+		$url = wp_nonce_url( self::settings_url( array( 'import_customer' => $customer_id ) ), self::$admin_page_slug, 'nonce' );
+
+		return apply_filters( 'zwqoi_import_customer_url', $url, $customer_id );
 	}
 
 	public static function get_value_from_object( $object, $properties_to_check ) {
