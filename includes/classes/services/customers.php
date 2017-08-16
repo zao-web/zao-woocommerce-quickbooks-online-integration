@@ -102,17 +102,13 @@ class Customers extends Base {
 
 		$company_name = $this->get_customer_company_name( $customer, false );
 
-		$by_id = new \WP_User_Query( array(
-			'meta_key'   => '_qb_customer_id',
-			'meta_value' => $customer->Id,
-		) );
+		$user = self::get_user_by_customer_id( $customer->Id );
 
-		$results = $by_id->get_results();
-		if ( ! empty( $results ) ) {
+		if ( ! empty( $user ) ) {
 			return $this->found_user_error(
 				__( 'A user has already been mapped to this QuickBooks Customer: %s', 'zwqoi' ),
 				$company_name,
-				end( $results )
+				$user
 			);
 		}
 
@@ -483,4 +479,24 @@ class Customers extends Base {
 
 		return $value ? $value : 'unknown';
 	}
+
+	public static function get_user_by_customer_id( $customer_id ) {
+		$args = array(
+			'meta_key'      => '_qb_customer_id',
+			'meta_value'    => $customer_id,
+			'number'        => 1,
+			'no_found_rows' => true,
+		);
+
+		$by_id = new \WP_User_Query( $args );
+
+		$results = $by_id->get_results();
+
+		if ( empty( $results ) ) {
+			return false;
+		}
+
+		return is_array( $results ) ? end( $results ) : $results;
+	}
+
 }
