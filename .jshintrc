@@ -15,6 +15,6 @@
 		"module":   false,
 		"console":  true,
 		"document": true,
-		"window":   true,
+		"window":   true
 	}
 }
