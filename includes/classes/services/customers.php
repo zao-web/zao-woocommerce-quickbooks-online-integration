@@ -287,6 +287,20 @@ class Customers extends Base {
 		return true;
 	}
 
+	protected function output_result_item( $item ) {
+		$html = '';
+		if ( 'error' === $item['id'] ) {
+			$html .= '<li class="error">' . $item['name'] . '</li>';
+		} elseif ( ! empty( $item['taken'] ) ) {
+			$user_edit_link = '<a href="' . get_edit_user_link( $item['taken'] ) . '">' . get_user_by( 'id', $item['taken'] )->display_name . '</a>';
+			$html .= '<li><strike>' . $item['name'] . '</strike> ' . sprintf( esc_attr__( 'This Customer is already associated to %s', 'zwqoi' ), $user_edit_link ) . '</li>';
+		} else {
+			$html .= '<li><span class="dashicons dashicons-download"></span> <a href="' . esc_url( self::import_customer_url( $item['id'] ) ) . '">' . $item['name'] . '</a></li>';
+		}
+
+		return apply_filters( 'zwqoi_output_search_result_item', $html, $item );
+	}
+
 	protected function set_search_results_from_query() {
 		$this->search_results = self::search_results(
 			wp_unslash( $_POST['search_term'] ),
@@ -330,12 +344,23 @@ class Customers extends Base {
 					'name' => $error->getOAuthHelperError(),
 				);
 			} else {
-				foreach ( (array) $customers as $customer ) {
-					if ( isset( $customer->Id ) ) {
-						$results[] = array(
-							'id'   => $customer->Id,
-							'name' => $this->get_customer_company_name( $customer ),
-						);
+				if ( ! empty( $customers ) ) {
+					$users = self::get_users_by_customer_ids( wp_list_pluck( $customers, 'Id' ) );
+					$existing = array();
+					if ( ! empty( $users ) ) {
+						foreach ( (array) $users as $user ) {
+							$existing[ $user->_qb_customer_id ] = $user->ID;
+						}
+					}
+
+					foreach ( (array) $customers as $customer ) {
+						if ( isset( $customer->Id ) ) {
+							$results[] = array(
+								'taken' => isset( $existing[ $customer->Id ] ) ? $existing[ $customer->Id ] : false,
+								'id'   => $customer->Id,
+								'name' => $this->get_customer_company_name( $customer ),
+							);
+						}
 					}
 				}
 			}

@@ -47,11 +47,7 @@
 		<p class="description"><?php _e( 'Click on one of the results to import the result as a WordPress user.', 'zwqoi' ); ?></p>
 		<ul>
 			<?php foreach ( $this->search_results as $result ) { ?>
-				<?php if ( 'error' === $result['id'] ) { ?>
-					<li class="error"><?php echo $result['name']; ?></li>
-				<?php } else { ?>
-					<li><span class="dashicons dashicons-download"></span> <a href="<?php echo esc_url( self::import_customer_url( $result['id'] ) ); ?>"><?php echo $result['name']; ?></a></li>
-				<?php } ?>
+				<?php echo $this->output_result_item( $result ); ?>
 			<?php } ?>
 		</ul>
 	<?php } ?>
