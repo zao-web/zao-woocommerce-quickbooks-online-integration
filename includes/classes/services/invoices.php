@@ -94,4 +94,32 @@ class Invoices extends Base {
 		}
 
 	}
+
+	public function create( $args ) {
+		return $this->create_invoice( $args );
+		/**
+		list( $invoice_obj, $result ) = $this->create_invoice( array(
+			// 'DocNumber' => '1070',
+			// 'LinkedTxn' => array(),
+			'Line' => array(
+				array(
+					'Description' => 'Sprinkler Purchases ?',
+					'Amount' => 192.55,
+					'DetailType' => 'SalesItemLineDetail',
+					'SalesItemLineDetail' => array(
+						'ItemRef' => array(
+							'value' => '17',
+							'name' => 'HOWDY'
+						),
+						'Qty' => 2,
+					),
+				),
+			),
+			'CustomerRef' => array(
+				'value' => $customer->Id,
+			)
+		) );
+		*/
+	}
+
 }

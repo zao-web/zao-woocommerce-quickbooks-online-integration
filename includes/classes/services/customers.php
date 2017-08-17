@@ -3,81 +3,28 @@ namespace Zao\WC_QBO_Integration\Services;
 
 use QuickBooksOnline\API;
 
-class Customers extends Base {
+class Customers extends UI_Base {
 
-	protected static $admin_page_slug = 'qbo-customer-search';
-	protected $search_results = array();
-	protected $results_count = 0;
+	protected $admin_page_slug  = 'qbo-customer-search';
+	protected $search_results   = array();
+	protected $results_count    = 0;
+	protected $update_query_var = 'update_user';
+	protected $import_query_var = 'import_customer';
+	protected $meta_key         = '_qb_customer_id';
 
-	public function init() {
-		add_action( 'admin_menu', array( $this, 'register_qb_customer_search_page' ), 999 );
-
-		if ( self::is_importing_customer() ) {
-			add_action( 'qbo_connect_initiated', array( $this, 'maybe_import_customer_or_update_user' ), 99 );
-		}
-
-		if ( self::settings_updated() ) {
-			self::add_import_success_notice( absint( $_GET['settings-updated'] ) );
-		}
-	}
-
-	public function register_qb_customer_search_page() {
-		add_users_page(
-			__( 'QuickBooks Customer Search', 'zwqoi' ),
-			__( 'QuickBooks Customers', 'zwqoi' ),
-			'manage_options',
-			self::$admin_page_slug,
-			array( $this, 'customer_search_page' )
-		);
-	}
-
-	public function customer_search_page() {
-		include_once ZWQOI_INC . 'views/customer-search-page.php';
+	public function search_page() {
+		include_once ZWQOI_INC . 'views/search-page.php';
 		do_action( 'zwqoi_customer_search_page', $this );
 	}
 
-	public function maybe_import_customer_or_update_user() {
-		$result = ! empty( $_GET['update_user'] )
-			? $this->update_user_with_customer( $_GET['update_user'], $_GET['import_customer'] )
-			: $this->import_customer( $_GET['import_customer'] );
-
-		if ( ! is_wp_error( $result ) ) {
-			$args = array( 'settings-updated' => $result );
-
-			if ( self::_param( 'redirect' ) ) {
-				$args['redirect'] = self::_param( 'redirect' );
-			}
-
-			wp_safe_redirect( add_query_arg( $args, self::settings_url() ) );
-			exit;
-		}
-
-		$error    = $result->get_error_data();
-		$msg      = $result->get_error_message();
-		$err_type = 'error';
-
-		if ( $error instanceof API\Core\HttpClients\FaultHandler ) {
-			$msg .= '<br>' . sprintf( __( 'The Status code is: %s', 'zwqoi' ), $error->getHttpStatusCode() ) . "\n";
-			$msg .= '<br>' . sprintf( __( 'The Helper message is: %s', 'zwqoi' ), $error->getOAuthHelperError() ) . "\n";
-			$msg .= '<br>' . sprintf( __( 'The Response message is: %s', 'zwqoi' ), $error->getResponseBody() ) . "\n";
-		}
-
-		if ( $error instanceof \WP_User ) {
-			$err_type = 'notice-warning';
-			$msg .= '<br>' . self::update_quickbooks_user_button( $error->ID, absint( $_GET['import_customer'] ) ) . "\n";
-		}
-
-		self::add_settings_notice( $msg, $err_type );
-	}
-
-	public function get_by_id( $customer_id ) {
-		$customer_id = absint( $customer_id );
-		if ( empty( $customer_id ) ) {
+	public function get_by_id( $qb_id ) {
+		$qb_id = absint( $qb_id );
+		if ( empty( $qb_id ) ) {
 			return false;
 		}
 
 		$customer = $this->query(
-			"SELECT * FROM Customer WHERE Id LIKE '{$customer_id}'"
+			"SELECT * FROM Customer WHERE Id LIKE '{$qb_id}'"
 		);
 
 		$error = $this->get_error();
@@ -85,7 +32,7 @@ class Customers extends Base {
 		if ( $error ) {
 			return new \WP_Error(
 				'zwqoi_customer_get_by_id_error',
-				sprintf( __( 'There was an error importing this user: %d', 'zwqoi' ), $customer_id ),
+				sprintf( __( 'There was an error importing this user: %d', 'zwqoi' ), $qb_id ),
 				$error
 			);
 		}
@@ -93,16 +40,10 @@ class Customers extends Base {
 		return is_array( $customer ) ? end( $customer ) : $customer;
 	}
 
-	public function import_customer( $customer_id ) {
-		$customer = $this->get_by_id( $customer_id );
+	public function validate_qb_object( $qb_object ) {
+		$company_name = self::get_customer_company_name( $qb_object, false );
 
-		if ( is_wp_error( $customer ) ) {
-			return $customer;
-		}
-
-		$company_name = $this->get_customer_company_name( $customer, false );
-
-		$user = self::get_user_by_customer_id( $customer->Id );
+		$user = $this->query_wp_by_qb_id( $qb_object->Id );
 
 		if ( ! empty( $user ) ) {
 			return $this->found_user_error(
@@ -112,12 +53,12 @@ class Customers extends Base {
 			);
 		}
 
-		if ( ! empty( $customer->PrimaryEmailAddr->Address ) ) {
-			$user = get_user_by( 'email', $customer->PrimaryEmailAddr->Address );
+		if ( ! empty( $qb_object->PrimaryEmailAddr->Address ) ) {
+			$user = get_user_by( 'email', $qb_object->PrimaryEmailAddr->Address );
 			if ( $user ) {
 				return $this->found_user_error(
 					__( 'A user already exists with this email: %s', 'zwqoi' ),
-					$customer->PrimaryEmailAddr->Address,
+					$qb_object->PrimaryEmailAddr->Address,
 					$user
 				);
 			}
@@ -134,45 +75,36 @@ class Customers extends Base {
 			);
 		}
 
-		$email = $company_slug . '@example.com';
-		if ( ! empty( $customer->PrimaryEmailAddr->Address ) ) {
-			$email = sanitize_text_field( $customer->PrimaryEmailAddr->Address );
-		}
-
-		$user_id = wp_create_user( $company_slug, wp_generate_password(), $email );
-		if ( is_wp_error( $user_id ) ) {
-			return $user_id;
-		}
-
-		return $this->update_user_with_customer( $user_id, $customer );
+		return $company_slug;
 	}
 
-	public function found_user_error( $message_format, $link_text, \WP_User $user ) {
-		$link = get_edit_user_link( $user->ID );
+	public function import_qb_object( $qb_object ) {
+		$company_name = self::get_customer_company_name( $qb_object, false );
+		$company_slug = preg_replace( '/\s+/', '', sanitize_user( $company_name, true ) );
 
-		return new \WP_Error(
-			'zwqoi_customer_import_error',
-			sprintf( $message_format, '<a href="' . $link . '">' . $link_text . '</a>' ),
-			$user
-		);
+		$email = ! empty( $qb_object->PrimaryEmailAddr->Address )
+			? sanitize_text_field( $qb_object->PrimaryEmailAddr->Address )
+			: $company_slug . '@example.com';
+
+		return wp_create_user( $company_slug, wp_generate_password(), $email );
 	}
 
-	public function update_user_with_customer( $user_id, $customer_id ) {
-		$user = $user_id instanceof \WP_User ? $user_id : get_user_by( 'id', absint( $user_id ) );
+	public function update_wp_object_with_qb_object( $wp_id, $qb_id ) {
+		$user = $wp_id instanceof \WP_User ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
 
 		if ( ! $user ) {
 			return new \WP_Error(
-				'zwqoi_update_user_with_customer_error',
-				sprintf( __( 'Not able to find the WordPress user with this ID: %s', 'zwqoi' ), $user_id )
+				'zwqoi_update_wp_object_with_qb_object_error',
+				sprintf( __( 'Not able to find the WordPress user with this ID: %s', 'zwqoi' ), $wp_id )
 			);
 		}
 
-		$customer = $customer_id instanceof API\Data\IPPCustomer ? $customer_id : $this->get_by_id( $customer_id );
+		$customer = $qb_id instanceof API\Data\IPPCustomer ? $qb_id : $this->get_by_id( $qb_id );
 		if ( is_wp_error( $customer ) ) {
 			return $customer;
 		}
 
-		$company_name = $this->get_customer_company_name( $customer, false );
+		$company_name = self::get_customer_company_name( $customer, false );
 
 		$args = array(
 			'ID'            => $user->ID,
@@ -205,7 +137,7 @@ class Customers extends Base {
 		$updated = wp_update_user( $args );
 
 		if ( $updated && ! is_wp_error( $updated ) ) {
-			update_user_meta( $updated, '_qb_customer_id', $customer->Id );
+			update_user_meta( $updated, $this->meta_key, $customer->Id );
 		}
 
 		return $updated;
@@ -274,19 +206,6 @@ class Customers extends Base {
 		return $wc_user->save();
 	}
 
-	public function has_search() {
-		if (
-			! isset( $_POST['search_term'], $_POST[ self::$admin_page_slug ] )
-			|| ! wp_verify_nonce( $_POST[ self::$admin_page_slug ], self::$admin_page_slug )
-		) {
-			return false;
-		}
-
-		$this->set_search_results_from_query();
-
-		return true;
-	}
-
 	protected function output_result_item( $item ) {
 		$html = '';
 		if ( 'error' === $item['id'] ) {
@@ -295,101 +214,72 @@ class Customers extends Base {
 			$user_edit_link = '<a href="' . get_edit_user_link( $item['taken'] ) . '">' . get_user_by( 'id', $item['taken'] )->display_name . '</a>';
 			$html .= '<li><strike>' . $item['name'] . '</strike> ' . sprintf( esc_attr__( 'This Customer is already associated to %s', 'zwqoi' ), $user_edit_link ) . '</li>';
 		} else {
-			$html .= '<li><span class="dashicons dashicons-download"></span> <a href="' . esc_url( self::import_customer_url( $item['id'] ) ) . '">' . $item['name'] . '</a></li>';
+			$html .= '<li><span class="dashicons dashicons-download"></span> <a href="' . esc_url( $this->import_url( $item['id'] ) ) . '">' . $item['name'] . '</a></li>';
 		}
 
-		return apply_filters( 'zwqoi_output_search_result_item', $html, $item );
+		return apply_filters( 'zwqoi_output_customer_search_result_item', $html, $item );
 	}
 
-	protected function set_search_results_from_query() {
-		$this->search_results = self::search_results(
-			wp_unslash( $_POST['search_term'] ),
-			self::_param_is( 'search_type', 'id' ) ? 'id' : 'company_name'
+	/*
+	 * Text methods
+	 */
+
+	public function text_search_page_title() {
+		return __( 'QuickBooks Customer Search', 'zwqoi' );
+	}
+
+	public function text_search_page_menu_title() {
+		return __( 'QuickBooks Customers', 'zwqoi' );
+	}
+
+	public function text_update_from_qb_button_confirm() {
+		return __( 'This will replace the WordPress user data with the QuickBooks Customer data. Are you sure you want to proceed?', 'zwqoi' );
+	}
+
+	public function text_update_from_qb_button() {
+		return __( 'Update user from QuickBooks', 'zwqoi' );
+	}
+
+	/*
+	 * Utilities
+	 */
+
+	public function found_user_error( $message_format, $link_text, \WP_User $user ) {
+		$link = get_edit_user_link( $user->ID );
+
+		return new \WP_Error(
+			'zwqoi_customer_import_error',
+			sprintf( $message_format, '<a href="' . $link . '">' . $link_text . '</a>' ),
+			$user
 		);
-
-		$this->results_count = count( $this->search_results );
-		if ( 1 === $this->results_count && 'error' === $this->search_results[0]['id'] ) {
-			$this->results_count = 0;
-		}
-
-		return $this->search_results;
 	}
 
-	public function search_results( $company_search = '', $search_type = 'company_name' ) {
-		global $wpdb;
-
-		$results = array();
-
-		$company_search = 'company_name' === $search_type ? sanitize_text_field( $company_search ) : absint( $company_search );
-		if ( empty( $company_search ) ) {
-			return $results;
-		}
-
-		try {
-			$query = $wpdb->prepare(
-				'company_name' === $search_type
-					? "SELECT * FROM Customer WHERE CompanyName = %s"
-					: "SELECT * FROM Customer WHERE Id = %s",
-				$company_search
-			);
-
-			$customers = $this->query( $query );
-
-			$error = $this->get_error();
-
-			if ( $error ) {
-
-				$results[] = array(
-					'id'   => 'error',
-					'name' => $error->getOAuthHelperError(),
-				);
-			} else {
-				if ( ! empty( $customers ) ) {
-					$users = self::get_users_by_customer_ids( wp_list_pluck( $customers, 'Id' ) );
-					$existing = array();
-					if ( ! empty( $users ) ) {
-						foreach ( (array) $users as $user ) {
-							$existing[ $user->_qb_customer_id ] = $user->ID;
-						}
-					}
-
-					foreach ( (array) $customers as $customer ) {
-						if ( isset( $customer->Id ) ) {
-							$results[] = array(
-								'taken' => isset( $existing[ $customer->Id ] ) ? $existing[ $customer->Id ] : false,
-								'id'   => $customer->Id,
-								'name' => $this->get_customer_company_name( $customer ),
-							);
-						}
-					}
-				}
-			}
-		} catch ( \Exception $e ) {
-			$results[] = array(
-				'id'   => 'error',
-				'name' => $e->getMessage(),
-			);
-		}
-
-		if ( empty( $results ) ) {
-			$results[] = array(
-				'id'   => 'error',
-				'name' => __( 'No results for this search.', 'zwqoi' ),
-			);
-		}
-
-		return $results;
+	public function search_query_format( $search_type ) {
+		return 'name' === $search_type
+			? "SELECT * FROM Customer WHERE CompanyName = %s"
+			: "SELECT * FROM Customer WHERE Id = %s";
 	}
 
-	public function company_name() {
-		return self::get_value_from_object( self::$api->get_company_info(), array(
-			'CompanyName',
-			'LegalName',
-			'Id',
-		) );
+	public function get_wp_object_edit_link( $wp_id ) {
+		$name = '';
+		$user = $this->get_wp_object( $wp_id );
+
+		if ( isset( $user->ID ) ) {
+			$name = '<a href="' . get_edit_user_link( $user->ID ) . '">' . $user->display_name . '</a>';
+		}
+
+		return $name;
 	}
 
-	public function get_customer_company_name( $customer, $with_contact = true ) {
+	public function get_wp_object( $wp_id ) {
+		return get_user_by( 'id', absint( $wp_id ) );
+	}
+
+	public function get_qb_object_name( $qb_object ) {
+		return self::get_customer_company_name( $qb_object );
+	}
+
+	public static function get_customer_company_name( $customer, $with_contact = true ) {
 		$name = self::get_value_from_object( $customer, array(
 			'CompanyName',
 			'DisplayName',
@@ -409,109 +299,26 @@ class Customers extends Base {
 		return $name;
 	}
 
-	public static function add_import_success_notice( $user_id ) {
-		$user = get_user_by( 'id', $user_id );
-
-		if ( isset( $user->ID ) ) {
-			$link = get_edit_user_link( $user->ID );
-
-			$msg = sprintf( __( 'Success! %s imported.', 'zwqoi' ), '<a href="' . $link . '">' . $user->display_name . '</a>' ) . "\n";
-
-			self::add_settings_notice( $msg, 'updated' );
-		}
+	public function admin_page_url() {
+		return admin_url( 'users.php?page=' . $this->admin_page_slug );
 	}
 
-	/*
-	 * Utilities
-	 */
+	public function update_url( $wp_id, $qb_id, $query_args = array() ) {
+		$url = parent::update_url( $wp_id, $qb_id, $query_args );
 
-	public static function add_settings_notice( $msg, $type ) {
-		return add_settings_error(
-			self::$admin_page_slug . '-notices',
-			'import-' . $type,
-			$msg,
-			$type
-		);
+		return apply_filters( 'zwqoi_update_user_with_quickbooks_customer_url', $url, $wp_id, $qb_id, $query_args );
 	}
 
-	public static function settings_updated() {
-		return self::is_admin_page()
-			&& isset( $_GET['settings-updated'] )
-			&& is_numeric( $_GET['settings-updated'] );
+	public function import_url( $qb_id ) {
+		$url = parent::import_url( $qb_id );
+
+		return apply_filters( 'zwqoi_import_customer_url', $url, $qb_id );
 	}
 
-	public static function is_importing_customer() {
-		return self::is_admin_page()
-			&& isset( $_GET['import_customer'], $_GET['nonce'] )
-			&& is_numeric( $_GET['import_customer'] )
-			&& wp_verify_nonce( $_GET['nonce'], self::$admin_page_slug );
-	}
-
-	public static function is_admin_page() {
-		return self::_param_is( 'page', self::$admin_page_slug );
-	}
-
-	public static function settings_url( $args = array() ) {
-		$url = admin_url( 'users.php?page=' . self::$admin_page_slug );
-
-		if ( ! empty( $args ) ) {
-			$url = add_query_arg( $args, $url );
-		}
-
-		return $url;
-	}
-
-	public static function update_quickbooks_user_button( $user_id, $customer_id, $query_args = array() ) {
-		return '<a class="button-secondary update-user-from-qb" onclick="return confirm(\'' . esc_attr__( 'This will replace the WordPress user data with the QuickBooks Customer data. Are you sure you want to proceed?', 'zwqoi' ) . '\')" href="' . esc_url( self::update_user_url( $user_id, $customer_id, $query_args ) ) . '">' . __( 'Update user from QuickBooks', 'zwqoi' ) . '</a>';
-	}
-
-	public static function update_user_url( $user_id, $customer_id, $query_args = array() ) {
-		$query_args['update_user'] = $user_id;
-		$url = add_query_arg( $query_args, self::import_customer_url( $customer_id ) );
-
-		return apply_filters( 'zwqoi_update_user_with_quickbooks_customer_url', $url, $user_id, $customer_id, $query_args );
-	}
-
-	public static function import_customer_url( $customer_id ) {
-		$url = wp_nonce_url( self::settings_url( array( 'import_customer' => $customer_id ) ), self::$admin_page_slug, 'nonce' );
-
-		return apply_filters( 'zwqoi_import_customer_url', $url, $customer_id );
-	}
-
-	public static function get_value_from_object( $object, $properties_to_check ) {
-		$value = '';
-
-		foreach ( $properties_to_check as $prop ) {
-			// if prop is array, we want to concatenate the results.
-			if ( is_array( $prop ) ) {
-				$value_arr = array();
-				foreach ( $prop as $prop_name ) {
-					if ( isset( $object->{$prop_name} ) ) {
-						$value_arr[] = $object->{$prop_name};
-					}
-				}
-
-				$value_arr = array_filter( $value_arr );
-
-				if ( ! empty( $value_arr ) ) {
-					$value = implode( ' ', $value_arr );
-					break;
-				}
-
-			} elseif ( ! empty( $object->{$prop} ) ) {
-				// Otherwise, we found the property we want.
-				$value = $object->{$prop};
-				break;
-			}
-		}
-
-		return $value ? $value : 'unknown';
-	}
-
-	public static function get_user_by_customer_id( $customer_id ) {
+	public function query_wp_by_qb_id( $qb_id ) {
 		$args = array(
-			'meta_key'      => '_qb_customer_id',
-			'meta_value'    => $customer_id,
+			'meta_key'      => $this->meta_key,
+			'meta_value'    => $qb_id,
 			'number'        => 1,
 			'no_found_rows' => true,
 		);
@@ -527,16 +334,16 @@ class Customers extends Base {
 		return is_array( $results ) ? end( $results ) : $results;
 	}
 
-	public static function get_users_by_customer_ids( $customer_ids ) {
+	public function query_wp_by_qb_ids( $qb_ids, $key_value = true ) {
 		$args = array(
 			'meta_query' => array(
 				array(
-					'key'     => '_qb_customer_id',
-					'value'   => (array) $customer_ids,
+					'key'     => $this->meta_key,
+					'value'   => (array) $qb_ids,
 					'compare' => 'IN',
 				),
 			),
-			'number'        => count( $customer_ids ),
+			'number'        => count( $qb_ids ),
 			'no_found_rows' => true,
 		);
 
@@ -548,6 +355,45 @@ class Customers extends Base {
 			return false;
 		}
 
-		return $results;
+		if ( ! $key_value ) {
+			return $results;
+		}
+
+		$existing = array();
+		foreach ( $results as $user ) {
+			$existing[ $user->{$this->meta_key} ] = $user->ID;
+		}
+
+		return $existing;
 	}
+
+	public function create( $args ) {
+		return $this->create_customer( $args );
+		/**
+		$args = array(
+			'BillAddr' => array(
+				'Line1'                  => '1 Infinite Loop',
+				'City'                   => 'Cupertino',
+				'Country'                => 'USA',
+				'CountrySubDivisionCode' => 'CA',
+				'PostalCode'             => '95014'
+			),
+			'Notes'              => 'Test... cras justo odio, dapibus ac facilisis in, egestas eget quam.',
+			'GivenName'          => 'Justin',
+			'MiddleName'         => 'T',
+			'FamilyName'         => 'Sternberg',
+			'FullyQualifiedName' => 'Zao',
+			'CompanyName'        => 'Zao',
+			'DisplayName'        => 'Zao',
+			'PrimaryPhone'       =>  array(
+				'FreeFormNumber' => '(408) 606-5775'
+			),
+			'PrimaryEmailAddr' =>  array(
+				'Address' => 'jt@zao.is',
+			)
+		);
+		list( $customer, $result ) = $this->create_customer( $args );
+		*/
+	}
+
 }
