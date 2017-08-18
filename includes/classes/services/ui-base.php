@@ -288,7 +288,7 @@ abstract class UI_Base extends Base {
 		return wp_nonce_url( $this->settings_url( array( $this->import_query_var => $qb_id ) ), $this->admin_page_slug, 'nonce' );
 	}
 
-	public function get_text( $key, $echo = true ) {
+	public function get_text( $key, $echo = false ) {
 		$method = 'text_' . $key;
 		$text = $this->{$method}();
 

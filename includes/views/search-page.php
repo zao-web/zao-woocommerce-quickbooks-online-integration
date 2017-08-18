@@ -35,9 +35,9 @@
 			<input class="large-text" placeholder="<?php echo esc_attr( $this->get_text( 'search_placeholder' ) ); ?>" type="text" name="search_term" value="<?php echo esc_attr( self::_param( 'search_term' ) ); ?>">
 			<p><?php _e( 'Search by:', 'zwqoi' ); ?>
 				&nbsp;
-				<label><input type="radio" name="search_type" value="name" <?php checked( ! isset( $_POST['search_type'] ) || self::_param_is( 'search_type', 'name' ) ); ?> /> <?php $this->get_text( 'object_single_name_name' ); ?></label>
+				<label><input type="radio" name="search_type" value="name" <?php checked( ! isset( $_POST['search_type'] ) || self::_param_is( 'search_type', 'name' ) ); ?> /> <?php $this->get_text( 'object_single_name_name', true ); ?></label>
 				&nbsp;
-				<label><input type="radio" name="search_type" value="id" <?php checked( self::_param_is( 'search_type', 'id' ) ); ?>/> <?php $this->get_text( 'object_id_name' ); ?></label>
+				<label><input type="radio" name="search_type" value="id" <?php checked( self::_param_is( 'search_type', 'id' ) ); ?>/> <?php $this->get_text( 'object_id_name', true ); ?></label>
 			</p>
 			<?php submit_button( $this->get_text( 'submit_button' ) ); ?>
 		</form>
@@ -46,7 +46,7 @@
 
 	<?php if ( $this->has_search() ) { ?>
 		<h3><?php printf( __( 'Search Results for &ldquo;%s&rdquo; (found <strong>%d</strong> result): ', 'zwqoi' ), esc_attr( wp_unslash( $_POST['search_term'] ) ), $this->results_count ); ?></h3>
-		<p class="description"><?php $this->get_text( 'search_help' ); ?></p>
+		<p class="description"><?php $this->get_text( 'search_help', true ); ?></p>
 		<ul>
 			<?php foreach ( $this->search_results as $result ) { ?>
 				<?php echo $this->output_result_item( $result ); ?>
