@@ -4,7 +4,7 @@ use Zao\QBO_API\Service;
 
 abstract class UI_Base extends Base {
 	protected $admin_page_slug = '';
-	protected $search_results = array();
+	protected $search_results = null;
 	protected $results_count = 0;
 	protected $permission_level = 'manage_options';
 	protected $update_query_var = '';
@@ -142,7 +142,9 @@ abstract class UI_Base extends Base {
 			return false;
 		}
 
-		$this->set_search_results_from_query();
+		if ( null === $this->search_results ) {
+			$this->set_search_results_from_query();
+		}
 
 		return true;
 	}
