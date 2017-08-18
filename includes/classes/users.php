@@ -25,7 +25,7 @@ class Users extends Base {
 		add_action( 'show_user_profile', array( $this, 'maybe_add_quickbook_sync_button' ), 2 );
 		add_action( 'edit_user_profile', array( $this, 'maybe_add_quickbook_sync_button' ), 2 );
 		add_action( 'zwqoi_customer_search_page', array( $this, 'maybe_redirect_back' ) );
-		add_action( 'zwqoi_customer_search_page_form', array( $this, 'maybe_add_hidden_inputs' ) );
+		add_action( 'zwqoi_search_page_form', array( $this, 'maybe_add_hidden_inputs' ) );
 	}
 
 	public function disconnect_quickbooks_user_notice() {
@@ -116,9 +116,10 @@ class Users extends Base {
 		echo '<p>' . $this->connect_customer_button( $this->user->ID ) . '</p>';
 	}
 
-	public function maybe_add_hidden_inputs() {
+	public function maybe_add_hidden_inputs( $obj ) {
 		if (
 			! self::_param( 'connect_customer' )
+			|| ! ( $obj instanceof Customers )
 			|| ! wp_verify_nonce( self::_param( 'connect_customer_nonce' ), __CLASS__ )
 		) {
 			return;

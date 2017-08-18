@@ -19,19 +19,32 @@ abstract class UI_Base extends Base {
 	abstract public function text_search_page_menu_title();
 	abstract public function text_update_from_qb_button_confirm();
 	abstract public function text_update_from_qb_button();
+	abstract public function text_search_placeholder();
+	abstract public function text_object_single_name_name();
+	abstract public function text_object_id_name();
+	abstract public function text_submit_button();
+	abstract public function text_search_help();
+
+	/*
+	 * Abstract methods
+	 */
 
 	abstract public function admin_page_url();
-	abstract public function search_page();
 	abstract protected function output_result_item( $item );
 	abstract protected function search_query_format( $search_type );
 	abstract public function query_wp_by_qb_id( $qb_id );
 	abstract public function query_wp_by_qb_ids( $qb_ids, $key_value = true );
 	abstract public function get_by_id( $qb_id );
+	abstract public function is_wp_object( $object );
 	abstract public function get_wp_object( $wp_id );
 	abstract public function get_wp_object_edit_link( $wp_id );
 	abstract public function validate_qb_object( $qb_id );
 	abstract public function import_qb_object( $qb_object );
 	abstract public function update_wp_object_with_qb_object( $wp_id, $qb_object );
+
+	public function parent_slug() {
+		return '';
+	}
 
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'register_qb_search_page' ), 999 );
@@ -46,13 +59,27 @@ abstract class UI_Base extends Base {
 	}
 
 	public function register_qb_search_page() {
-		add_users_page(
+		$parent_slug = $this->parent_slug();
+
+		$args = array(
 			$this->text_search_page_title(),
 			$this->text_search_page_menu_title(),
 			$this->permission_level,
 			$this->admin_page_slug,
-			array( $this, 'search_page' )
+			array( $this, 'search_page' ),
 		);
+		$func = 'add_menu_page';
+
+		if ( $parent_slug ) {
+			$args = array_merge( array( $parent_slug ), $args );
+			$func = 'add_submenu_page';
+		}
+
+		call_user_func_array( $func, $args );
+	}
+
+	public function search_page() {
+		include_once ZWQOI_INC . 'views/search-page.php';
 	}
 
 	public function maybe_import_or_update() {
@@ -77,7 +104,7 @@ abstract class UI_Base extends Base {
 			$msg .= self::fault_handler_error_output( $error );
 		}
 
-		if ( $error instanceof \WP_User ) {
+		if ( $this->is_wp_object( $error ) ) {
 			$err_type = 'notice-warning';
 			$msg .= '<br>' . $this->update_from_qb_button( $error->ID, absint( $_GET[ $this->import_query_var ] ) ) . "\n";
 		}
@@ -259,6 +286,17 @@ abstract class UI_Base extends Base {
 
 	public function import_url( $qb_id ) {
 		return wp_nonce_url( $this->settings_url( array( $this->import_query_var => $qb_id ) ), $this->admin_page_slug, 'nonce' );
+	}
+
+	public function get_text( $key, $echo = true ) {
+		$method = 'text_' . $key;
+		$text = $this->{$method}();
+
+		if ( ! $echo ) {
+			return $text;
+		}
+
+		echo $text;
 	}
 
 }

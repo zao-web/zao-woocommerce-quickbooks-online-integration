@@ -12,9 +12,17 @@ class Customers extends UI_Base {
 	protected $import_query_var = 'import_customer';
 	protected $meta_key         = '_qb_customer_id';
 
+	public function parent_slug() {
+		return 'users.php';
+	}
+
 	public function search_page() {
-		include_once ZWQOI_INC . 'views/search-page.php';
+		parent::search_page();
 		do_action( 'zwqoi_customer_search_page', $this );
+	}
+
+	public function is_wp_object( $object ) {
+		return $object instanceof \WP_User;
 	}
 
 	public function get_by_id( $qb_id ) {
@@ -90,7 +98,7 @@ class Customers extends UI_Base {
 	}
 
 	public function update_wp_object_with_qb_object( $wp_id, $qb_id ) {
-		$user = $wp_id instanceof \WP_User ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
+		$user = $this->is_wp_object( $wp_id ) ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
 
 		if ( ! $user ) {
 			return new \WP_Error(
@@ -238,6 +246,26 @@ class Customers extends UI_Base {
 
 	public function text_update_from_qb_button() {
 		return __( 'Update user from QuickBooks', 'zwqoi' );
+	}
+
+	public function text_search_placeholder() {
+		return __( 'Company Name or Id', 'zwqoi' );
+	}
+
+	public function text_object_single_name_name() {
+		return __( 'Company Name', 'zwqoi' );
+	}
+
+	public function text_object_id_name() {
+		return __( 'Company ID', 'zwqoi' );
+	}
+
+	public function text_submit_button() {
+		return __( 'Search for Company', 'zwqoi' );
+	}
+
+	public function text_search_help() {
+		return __( 'Click on one of the results to import the result as a WordPress user.', 'zwqoi' );
 	}
 
 	/*
