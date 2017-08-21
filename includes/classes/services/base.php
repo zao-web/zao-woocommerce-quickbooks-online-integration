@@ -24,10 +24,10 @@ abstract class Base extends Service {
 		return parent::get_service( $reset );
 	}
 
-	public static function get_value_from_object( $object, $properties_to_check ) {
+	public static function get_value_from_object( $object, $properties_to_check, $fallback = 'unknown' ) {
 		$value = '';
 
-		foreach ( $properties_to_check as $prop ) {
+		foreach ( (array) $properties_to_check as $prop ) {
 			// if prop is array, we want to concatenate the results.
 			if ( is_array( $prop ) ) {
 				$value_arr = array();
@@ -51,7 +51,7 @@ abstract class Base extends Service {
 			}
 		}
 
-		return $value ? $value : 'unknown';
+		return $value ? $value : $fallback;
 	}
 
 	protected function get_error() {

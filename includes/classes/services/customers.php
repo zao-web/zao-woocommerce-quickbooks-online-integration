@@ -6,8 +6,6 @@ use QuickBooksOnline\API;
 class Customers extends UI_Base {
 
 	protected $admin_page_slug  = 'qbo-customer-search';
-	protected $search_results   = array();
-	protected $results_count    = 0;
 	protected $update_query_var = 'update_user';
 	protected $import_query_var = 'import_customer';
 	protected $meta_key         = '_qb_customer_id';
@@ -21,34 +19,7 @@ class Customers extends UI_Base {
 		do_action( 'zwqoi_customer_search_page', $this );
 	}
 
-	public function is_wp_object( $object ) {
-		return $object instanceof \WP_User;
-	}
-
-	public function get_by_id( $qb_id ) {
-		$qb_id = absint( $qb_id );
-		if ( empty( $qb_id ) ) {
-			return false;
-		}
-
-		$customer = $this->query(
-			"SELECT * FROM Customer WHERE Id LIKE '{$qb_id}'"
-		);
-
-		$error = $this->get_error();
-
-		if ( $error ) {
-			return new \WP_Error(
-				'zwqoi_customer_get_by_id_error',
-				sprintf( __( 'There was an error importing this user: %d', 'zwqoi' ), $qb_id ),
-				$error
-			);
-		}
-
-		return is_array( $customer ) ? end( $customer ) : $customer;
-	}
-
-	public function validate_qb_object( $qb_object ) {
+	public function validate_qb_object( $qb_object, $force = false ) {
 		$company_name = self::get_customer_company_name( $qb_object, false );
 
 		$user = $this->query_wp_by_qb_id( $qb_object->Id );
@@ -74,13 +45,15 @@ class Customers extends UI_Base {
 
 		$company_slug = preg_replace( '/\s+/', '', sanitize_user( $company_name, true ) );
 
-		$user = get_user_by( 'login', $company_slug );
-		if ( $user ) {
-			return $this->found_user_error(
-				__( 'A user already exists with this username: %s', 'zwqoi' ),
-				$company_slug,
-				$user
-			);
+		if ( ! $force ) {
+			$user = get_user_by( 'login', $company_slug );
+			if ( $user ) {
+				return $this->found_user_error(
+					__( 'A user already exists with this username: %s', 'zwqoi' ),
+					$company_slug,
+					$user
+				);
+			}
 		}
 
 		return $company_slug;
@@ -151,7 +124,7 @@ class Customers extends UI_Base {
 		return $updated;
 	}
 
-	public function update_woo_customer( $user_id, $user_args, API\Data\IPPCustomer $customer ) {
+	protected function update_woo_customer( $user_id, $user_args, API\Data\IPPCustomer $customer ) {
 		$wc_user = new \WC_Customer( $user_id );
 
 		$parts = array(
@@ -219,7 +192,7 @@ class Customers extends UI_Base {
 		if ( 'error' === $item['id'] ) {
 			$html .= '<li class="error">' . $item['name'] . '</li>';
 		} elseif ( ! empty( $item['taken'] ) ) {
-			$user_edit_link = '<a href="' . get_edit_user_link( $item['taken'] ) . '">' . get_user_by( 'id', $item['taken'] )->display_name . '</a>';
+			$user_edit_link = '<a href="' . get_edit_user_link( $item['taken'] ) . '">' . $this->get_wp_name( get_user_by( 'id', $item['taken'] ) ) . '</a>';
 			$html .= '<li><strike>' . $item['name'] . '</strike> ' . sprintf( esc_attr__( 'This Customer is already associated to %s', 'zwqoi' ), $user_edit_link ) . '</li>';
 		} else {
 			$html .= '<li><span class="dashicons dashicons-download"></span> <a href="' . esc_url( $this->import_url( $item['id'] ) ) . '">' . $item['name'] . '</a></li>';
@@ -245,7 +218,11 @@ class Customers extends UI_Base {
 	}
 
 	public function text_update_from_qb_button() {
-		return __( 'Update user from QuickBooks', 'zwqoi' );
+		return __( 'Sync QuickBooks data to this user', 'zwqoi' );
+	}
+
+	public function text_import_as_new_from_qb() {
+		return __( 'Import as new user', 'zwqoi' );
 	}
 
 	public function text_search_placeholder() {
@@ -272,6 +249,58 @@ class Customers extends UI_Base {
 	 * Utilities
 	 */
 
+	public function get_by_id( $qb_id ) {
+		$qb_id = absint( $qb_id );
+		if ( empty( $qb_id ) ) {
+			return false;
+		}
+
+		$customer = $this->query(
+			"SELECT * FROM Customer WHERE Id LIKE '{$qb_id}'"
+		);
+
+		$error = $this->get_error();
+
+		if ( $error ) {
+			return new \WP_Error(
+				'zwqoi_customer_get_by_id_error',
+				sprintf( __( 'There was an error importing this user: %d', 'zwqoi' ), $qb_id ),
+				$error
+			);
+		}
+
+		return is_array( $customer ) ? end( $customer ) : $customer;
+	}
+
+	public function is_wp_object( $object ) {
+		return $object instanceof \WP_User;
+	}
+
+	public function get_wp_id( $object ) {
+		if ( ! $this->is_wp_object( $object ) ) {
+			return 0;
+		}
+
+		return $object->ID;
+	}
+
+	public function get_wp_name( $object ) {
+		if ( ! $this->is_wp_object( $object ) ) {
+			return '';
+		}
+
+		return $object->display_name;
+	}
+
+	public function get_wp_edit_url( $object ) {
+		$object = $this->get_wp_object( $object );
+		if ( ! $object ) {
+			return '';
+		}
+
+		return get_edit_user_link( $this->get_wp_id( $object ), 'edit' );
+	}
+
 	public function found_user_error( $message_format, $link_text, \WP_User $user ) {
 		$link = get_edit_user_link( $user->ID );
 
@@ -288,19 +317,8 @@ class Customers extends UI_Base {
 			: "SELECT * FROM Customer WHERE Id = %s";
 	}
 
-	public function get_wp_object_edit_link( $wp_id ) {
-		$name = '';
-		$user = $this->get_wp_object( $wp_id );
-
-		if ( isset( $user->ID ) ) {
-			$name = '<a href="' . get_edit_user_link( $user->ID ) . '">' . $user->display_name . '</a>';
-		}
-
-		return $name;
-	}
-
 	public function get_wp_object( $wp_id ) {
-		return get_user_by( 'id', absint( $wp_id ) );
+		return $this->is_wp_object( $wp_id ) ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
 	}
 
 	public function get_qb_object_name( $qb_object ) {
@@ -337,8 +355,8 @@ class Customers extends UI_Base {
 		return apply_filters( 'zwqoi_update_user_with_quickbooks_customer_url', $url, $wp_id, $qb_id, $query_args );
 	}
 
-	public function import_url( $qb_id ) {
-		$url = parent::import_url( $qb_id );
+	public function import_url( $qb_id, $force = false ) {
+		$url = parent::import_url( $qb_id, $force );
 
 		return apply_filters( 'zwqoi_import_customer_url', $url, $qb_id );
 	}

@@ -5,8 +5,9 @@ class Plugin extends Base {
 
 	protected static $single_instance = null;
 	protected $customers;
-	protected $users;
+	protected $products;
 	protected $invoices;
+	protected $users;
 
 	/**
 	 * Creates or returns an instance of this class.
@@ -23,6 +24,7 @@ class Plugin extends Base {
 
 	protected function __construct() {
 		$this->customers = new Services\Customers();
+		$this->products = new Services\Products();
 		$this->invoices = new Services\Invoices();
 		$this->users = new Users( $this->customers );
 	}
@@ -30,6 +32,7 @@ class Plugin extends Base {
 	public function init() {
 		add_action( 'qbo_connect_initiated', array( $this, 'api_init' ) );
 		$this->customers->init();
+		$this->products->init();
 		$this->invoices->init();
 		$this->users->init();
 	}

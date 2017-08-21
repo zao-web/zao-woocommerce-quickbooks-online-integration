@@ -5,8 +5,9 @@
 	li.error {
 		color: #dc3232;
 	}
-	.wp-core-ui .button-secondary.update-from-qb {
-		margin-top: 10px;
+	.wp-core-ui .qb-import-button-wrap {
+		margin: 10px 0 5px;
+		display: block;
 	}
 </style>
 

@@ -3,13 +3,13 @@ namespace Zao\WC_QBO_Integration\Services;
 use Zao\QBO_API\Service;
 
 abstract class UI_Base extends Base {
-	protected $admin_page_slug = '';
-	protected $search_results = null;
-	protected $results_count = 0;
+	protected $search_results   = null;
+	protected $results_count    = 0;
 	protected $permission_level = 'manage_options';
+	protected $admin_page_slug  = '';
 	protected $update_query_var = '';
 	protected $import_query_var = '';
-	protected $meta_key = '';
+	protected $meta_key         = '';
 
 	/*
 	 * Text methods
@@ -19,6 +19,7 @@ abstract class UI_Base extends Base {
 	abstract public function text_search_page_menu_title();
 	abstract public function text_update_from_qb_button_confirm();
 	abstract public function text_update_from_qb_button();
+	abstract public function text_import_as_new_from_qb();
 	abstract public function text_search_placeholder();
 	abstract public function text_object_single_name_name();
 	abstract public function text_object_id_name();
@@ -37,8 +38,10 @@ abstract class UI_Base extends Base {
 	abstract public function get_by_id( $qb_id );
 	abstract public function is_wp_object( $object );
 	abstract public function get_wp_object( $wp_id );
-	abstract public function get_wp_object_edit_link( $wp_id );
-	abstract public function validate_qb_object( $qb_id );
+	abstract public function get_wp_id( $object );
+	abstract public function get_wp_name( $object );
+	abstract public function get_wp_edit_url( $object );
+	abstract public function validate_qb_object( $qb_id, $force = false );
 	abstract public function import_qb_object( $qb_object );
 	abstract public function update_wp_object_with_qb_object( $wp_id, $qb_object );
 
@@ -48,6 +51,10 @@ abstract class UI_Base extends Base {
 
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'register_qb_search_page' ), 999 );
+
+		if ( $this->has_search() ) {
+			add_action( 'qbo_connect_initiated', array( $this, 'set_search_results_from_query' ), 99 );
+		}
 
 		if ( $this->is_importing() ) {
 			add_action( 'qbo_connect_initiated', array( $this, 'maybe_import_or_update' ), 99 );
@@ -85,14 +92,16 @@ abstract class UI_Base extends Base {
 	public function maybe_import_or_update() {
 		$result = ! empty( $_GET[ $this->update_query_var ] )
 			? $this->update_wp_object_with_qb_object( $_GET[ $this->update_query_var ], $_GET[ $this->import_query_var ] )
-			: $this->validate_and_import_qb_object( $_GET[ $this->import_query_var ] );
+			: $this->validate_and_import_qb_object( $_GET[ $this->import_query_var ], ! empty( $_GET['force'] ) );
 
+		// If update/import was successful:
 		if ( ! is_wp_error( $result ) ) {
 
 			$url = self::_param( 'redirect' )
 				? urldecode( self::_param( 'redirect' ) )
 				: $this->settings_url( array( 'settings-updated' => $result ) ) ;
 
+			// Redirect to requested location, or redirect back to search page with success message.
 			self::redirect( esc_url_raw( $url ) );
 		}
 
@@ -105,21 +114,23 @@ abstract class UI_Base extends Base {
 		}
 
 		if ( $this->is_wp_object( $error ) ) {
+			$qb_id = absint( $_GET[ $this->import_query_var ] );
 			$err_type = 'notice-warning';
-			$msg .= '<br>' . $this->update_from_qb_button( $error->ID, absint( $_GET[ $this->import_query_var ] ) ) . "\n";
+			$msg .= '<span class="qb-import-button-wrap">' . $this->update_from_qb_button( $error->ID, $qb_id );
+			$msg .= ' or ' . $this->force_import_from_qb_button( $qb_id, true ) . "</span>\n";
 		}
 
 		$this->add_settings_notice( $msg, $err_type );
 	}
 
-	public function validate_and_import_qb_object( $qb_id ) {
+	public function validate_and_import_qb_object( $qb_id, $force = true ) {
 		$qb_object = $this->get_by_id( $qb_id );
 
 		if ( is_wp_error( $qb_object ) ) {
 			return $qb_object;
 		}
 
-		$validation_error = $this->validate_qb_object( $qb_object );
+		$validation_error = $this->validate_qb_object( $qb_object, $force );
 
 		if ( is_wp_error( $validation_error ) ) {
 			return $validation_error;
@@ -135,29 +146,28 @@ abstract class UI_Base extends Base {
 	}
 
 	public function has_search() {
-		if (
-			! isset( $_POST['search_term'], $_POST[ $this->admin_page_slug ] )
-			|| ! wp_verify_nonce( $_POST[ $this->admin_page_slug ], $this->admin_page_slug )
-		) {
-			return false;
+		static $has_search = null;
+		if ( null === $has_search ) {
+			$has_search = (
+				isset( $_POST['search_term'], $_POST[ $this->admin_page_slug ] )
+				&& wp_verify_nonce( $_POST[ $this->admin_page_slug ], $this->admin_page_slug )
+			);
 		}
 
-		if ( null === $this->search_results ) {
-			$this->set_search_results_from_query();
-		}
-
-		return true;
+		return $has_search;
 	}
 
-	protected function set_search_results_from_query() {
-		$this->search_results = $this->search_results(
-			wp_unslash( $_POST['search_term'] ),
-			self::_param_is( 'search_type', 'id' ) ? 'id' : 'name'
-		);
+	public function set_search_results_from_query() {
+		if ( null === $this->search_results ) {
+			$this->search_results = $this->search_results(
+				wp_unslash( $_POST['search_term'] ),
+				self::_param_is( 'search_type', 'id' ) ? 'id' : 'name'
+			);
 
-		$this->results_count = count( $this->search_results );
-		if ( 1 === $this->results_count && 'error' === $this->search_results[0]['id'] ) {
-			$this->results_count = 0;
+			$this->results_count = count( $this->search_results );
+			if ( 1 === $this->results_count && 'error' === $this->search_results[0]['id'] ) {
+				$this->results_count = 0;
+			}
 		}
 
 		return $this->search_results;
@@ -281,13 +291,44 @@ abstract class UI_Base extends Base {
 		);
 	}
 
+	public function force_import_from_qb_button( $qb_id, $force = true, $button_text = null ) {
+		if ( null === $button_text ) {
+			$button_text = $this->text_import_as_new_from_qb();
+		}
+		return sprintf(
+			'<a class="button-secondary import-from-qb" href="%1$s">%2$s</a>',
+			esc_url( $this->import_url( $qb_id, $force ) ),
+			esc_html( $button_text )
+		);
+	}
+
 	public function update_url( $wp_id, $qb_id, $query_args = array() ) {
 		$query_args[ $this->update_query_var ] = $wp_id;
 		return add_query_arg( $query_args, $this->import_url( $qb_id ) );
 	}
 
-	public function import_url( $qb_id ) {
-		return wp_nonce_url( $this->settings_url( array( $this->import_query_var => $qb_id ) ), $this->admin_page_slug, 'nonce' );
+	public function import_url( $qb_id, $force = false ) {
+		$args = array( $this->import_query_var => $qb_id );
+		if ( $force ) {
+			$args['force'] = 1;
+		}
+		return wp_nonce_url( $this->settings_url( $args ), $this->admin_page_slug, 'nonce' );
+	}
+
+	public function get_wp_object_edit_link( $wp_id, $link_text = null ) {
+		$name = '';
+		$object = $this->get_wp_object( $wp_id );
+		if ( ! $object ) {
+			return $name;
+		}
+
+		if ( null === $link_text ) {
+			$link_text = $this->get_wp_name( $object );
+		}
+
+		$name = '<a href="' . $this->get_wp_edit_url( $object ) . '">' . $link_text . '</a>';
+
+		return $name;
 	}
 
 	public function get_text( $key, $echo = false ) {
