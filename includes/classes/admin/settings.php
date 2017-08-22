@@ -54,6 +54,15 @@ class Settings extends Base {
 		return $links;
 	}
 
+	/**
+	 * Adds this settings page to the nav tabs filter.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param array  $links Array of links for nav tabs.
+	 *
+	 * @return array
+	 */
 	public function add_nav_link( $links ) {
 		$links[] = array(
 			'url'    => $this->settings_url(),
@@ -64,6 +73,15 @@ class Settings extends Base {
 		return $links;
 	}
 
+	/**
+	 * Adds the API Connect plugin's settings to the nav tabs filter if it is found.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array  $links Array of links for nav tabs.
+	 *
+	 * @return array
+	 */
 	public function maybe_add_connect_link( $links ) {
 		if ( function_exists( 'qbo_connect_ui' ) && qbo_connect_ui()->settings ) {
 			$links[] = array(
