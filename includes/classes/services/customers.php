@@ -144,7 +144,9 @@ class Customers extends UI_Base {
 		$updated = wp_update_user( $args );
 
 		if ( $updated && ! is_wp_error( $updated ) ) {
-			update_user_meta( $updated, $this->meta_key, $customer->Id );
+			if ( update_user_meta( $updated, $this->meta_key, $customer->Id ) ) {
+				do_action( 'zwqoi_customer_connected_to_user', $customer->Id, $updated );
+			}
 		}
 
 		return $updated;
@@ -329,7 +331,10 @@ class Customers extends UI_Base {
 	}
 
 	public function disconnect_qb_object( $object ) {
-		return delete_user_meta( $this->get_wp_id( $object ), $this->meta_key );
+		$user_id = $this->get_wp_id( $object );
+		if ( delete_user_meta( $user_id, $this->meta_key ) ) {
+			do_action( 'zwqoi_customer_disconnect_user', $user_id );
+		}
 	}
 
 	public function found_user_error( $message_format, $link_text, \WP_User $user ) {

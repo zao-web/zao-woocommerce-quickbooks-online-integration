@@ -1,6 +1,7 @@
 <?php
 namespace Zao\WC_QBO_Integration\Admin;
 use Zao\WC_QBO_Integration\Base;
+use Zao\WC_QBO_Integration\Plugin;
 use Zao\WC_QBO_Integration\Services\Base as Services;
 
 class Settings extends Base {
@@ -15,8 +16,14 @@ class Settings extends Base {
 		add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_nav_link' ), 5 );
 		add_filter( 'zwqoi_settings_nav_links', array( $this, 'maybe_add_connect_link' ), 20 );
 
+		add_action( 'cmb2_save_options-page_fields_' . self::KEY . '_box', array( $this, 'maybe_reset_wholesale_users_cache' ), 10, 2 );
+
+		add_action( 'zwqoi_customer_connected_to_user', array( $this, 'reset_wholesale_users_cache_if_limiting' ) );
+		add_action( 'zwqoi_customer_disconnect_user', array( $this, 'reset_wholesale_users_cache_if_limiting' ) );
+
 		add_filter( 'zwqoi_role_for_customer_user', array( __CLASS__, 'maybe_set_wholesaler_role' ) );
 		add_action( 'zwqoi_new_product_from_quickbooks', array( __CLASS__, 'maybe_set_wholesale_category' ) );
+		add_filter( 'zwoowh_set_wholesale_users_args', array( __CLASS__, 'maybe_limit_wholesalers_to_customers' ) );
 	}
 
 	public function show_settings() {
@@ -131,6 +138,15 @@ class Settings extends Base {
 			'type'             => 'taxonomy_radio',
 			'show_option_none' => __( 'No', 'zwqoi' ),
 		) );
+
+		$this->cmb->add_field( array(
+			'show_on_cb' => array( __CLASS__, 'has_wholesale_plugin' ),
+			'name'       => __( 'Limit wholesale customers to QuickBooks customers?', 'zwqoi' ),
+			'desc'       => __( 'By default, the wholesaler users are <strong>not</strong> limited to users with connected QuickBooks customers.', 'zwqoi' ),
+			'id'         => 'wholesalers_must_be_customers',
+			'type'       => 'checkbox',
+		) );
+
 	}
 
 	public static function is_connected( $field ) {
@@ -159,6 +175,20 @@ class Settings extends Base {
 		include_once ZWQOI_INC . 'views/settings-page.php';
 	}
 
+	public function maybe_reset_wholesale_users_cache( $key, $updated ) {
+		if ( self::has_wholesale_plugin() && in_array( 'wholesalers_must_be_customers', $updated ) ) {
+			// Trigger a re-caching of wholesaler users.
+			do_action( 'zwoowh_set_wholesale_users' );
+		}
+	}
+
+	public function reset_wholesale_users_cache_if_limiting() {
+		if ( self::has_wholesale_plugin() && self::get_option( 'wholesalers_must_be_customers' ) ) {
+			// Trigger a re-caching of wholesaler users.
+			do_action( 'zwoowh_set_wholesale_users' );
+		}
+	}
+
 	public static function maybe_set_wholesaler_role( $role ) {
 		if ( self::has_wholesale_plugin() && self::get_option( 'customers_as_wholesalers' ) ) {
 			$role = \Zao\ZaoWooCommerce_Wholesale\User::ROLE;
@@ -172,6 +202,15 @@ class Settings extends Base {
 			$term = self::get_option( 'products_as_wholesale' );
 			\Zao\ZaoWooCommerce_Wholesale\Taxonomy::set_wholesale_term( $product_id, $term );
 		}
+	}
+
+	public static function maybe_limit_wholesalers_to_customers( $args ) {
+		if ( self::get_option( 'wholesalers_must_be_customers' ) ) {
+			$args['meta_key']     = Plugin::get_instance()->customers->meta_key;
+			$args['meta_compare'] = 'EXISTS';
+		}
+
+		return $args;
 	}
 
 	public function settings_url() {
