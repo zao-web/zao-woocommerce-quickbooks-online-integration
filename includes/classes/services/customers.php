@@ -10,6 +10,21 @@ class Customers extends UI_Base {
 	protected $import_query_var = 'import_customer';
 	protected $meta_key         = '_qb_customer_id';
 
+	public function init() {
+		parent::init();
+		add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_nav_link' ), 6 );
+	}
+
+	public function add_nav_link( $links ) {
+		$links[] = array(
+			'url'    => $this->admin_page_url(),
+			'active' => $this->is_on_admin_page(),
+			'text'   => esc_html__( 'Customer Search', 'zwqoi' ),
+		);
+
+		return $links;
+	}
+
 	public function parent_slug() {
 		return 'users.php';
 	}

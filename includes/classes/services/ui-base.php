@@ -237,6 +237,26 @@ abstract class UI_Base extends Base {
 	 * Utilities
 	 */
 
+	public static function admin_page_title() {
+		$links = apply_filters( 'zwqoi_settings_nav_links', array() );
+		if ( empty( $links ) ) {
+			echo '<h2>' . get_admin_page_title() . '</h2>';
+		}
+
+		$nav = '<h2 class="nav-tab-wrapper">';
+		foreach ( $links as $item ) {
+			$nav .= sprintf(
+				'<a href="%1$s" class="nav-tab%2$s">%3$s</a>',
+				$item['url'],
+				! empty( $item['active'] ) ? ' nav-tab-active' : '' ,
+				$item['text']
+			);
+		}
+		$nav .= '</h2>';
+
+		echo $nav;
+	}
+
 	public function settings_url( $args = array() ) {
 		$url = $this->admin_page_url();
 
@@ -330,6 +350,19 @@ abstract class UI_Base extends Base {
 		$name = '<a href="' . $this->get_wp_edit_url( $object ) . '">' . $link_text . '</a>';
 
 		return $name;
+	}
+
+	public function is_on_admin_page() {
+		$curr = remove_query_arg( 'testtest' );
+		$curr = parse_url( $curr );
+		$admin_url = $this->admin_page_url();
+		$admin_url = parse_url( $admin_url );
+
+		return (
+			isset( $curr['path'], $curr['query'], $admin_url['path'], $admin_url['query'] )
+			&& untrailingslashit( $curr['path'] ) === untrailingslashit( $admin_url['path'] )
+			&& $curr['query'] === $admin_url['query']
+		);
 	}
 
 }

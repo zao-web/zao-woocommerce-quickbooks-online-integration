@@ -1,7 +1,4 @@
 <style type="text/css">
-	.qbo-search-wrap .qb-company-name {
-		margin: 0 0 1em;
-	}
 	li.error {
 		color: #dc3232;
 	}
@@ -14,7 +11,7 @@
 <?php settings_errors( $this->admin_page_slug . '-notices' ); ?>
 
 <div class="wrap qbo-search-wrap">
-	<h2><?php echo get_admin_page_title(); ?></h2>
+	<?php self::admin_page_title(); ?>
 
 	<?php if ( self::$api ) { ?>
 		<p class="qb-company-name"><?php printf( __( 'Your company: <em>%s</em> ', 'zwqoi' ), self::company_name() ); ?></p>
