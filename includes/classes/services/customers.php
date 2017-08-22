@@ -74,7 +74,7 @@ class Customers extends UI_Base {
 		return $company_slug;
 	}
 
-	public function import_qb_object( $qb_object ) {
+	protected function import_qb_object( $qb_object ) {
 		$company_name = self::get_customer_company_name( $qb_object, false );
 		$company_slug = preg_replace( '/\s+/', '', sanitize_user( $company_name, true ) );
 

@@ -107,8 +107,7 @@ class Products extends UI_Base {
 		return $slug;
 	}
 
-	// TODO: test
-	public function import_qb_object( $qb_object ) {
+	protected function import_qb_object( $qb_object ) {
 		return new WC_Product();
 	}
 
