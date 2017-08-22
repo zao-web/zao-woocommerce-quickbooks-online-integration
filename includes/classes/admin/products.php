@@ -1,6 +1,5 @@
 <?php
 namespace Zao\WC_QBO_Integration\Admin;
-use Zao\WC_QBO_Integration\Services\Products;
 
 class Products extends Connected_Object_Base {
 
