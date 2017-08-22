@@ -36,10 +36,11 @@
  */
 
 // Useful global constants
-define( 'ZWQOI_VERSION', '0.1.0' );
-define( 'ZWQOI_URL',     plugin_dir_url( __FILE__ ) );
-define( 'ZWQOI_PATH',    dirname( __FILE__ ) . '/' );
-define( 'ZWQOI_INC',     ZWQOI_PATH . 'includes/' );
+define( 'ZWQOI_VERSION',  '0.1.0' );
+define( 'ZWQOI_BASENAME', plugin_basename( __FILE__ ) );
+define( 'ZWQOI_URL',      plugin_dir_url( __FILE__ ) );
+define( 'ZWQOI_PATH',     dirname( __FILE__ ) . '/' );
+define( 'ZWQOI_INC',      ZWQOI_PATH . 'includes/' );
 
 // Include files
 require_once ZWQOI_INC . 'functions/core.php';

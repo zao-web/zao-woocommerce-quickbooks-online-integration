@@ -156,6 +156,10 @@ class Products extends UI_Base {
 		$this->set_product_meta( $wc_product, $product, $this->sync_meta_keys );
 
 		$wc_product->update_meta_data( $this->meta_key, $product->Id );
+
+		add_action( 'woocommerce_new_product', array( $this, 'add_custom_new_product_hook' ) );
+		add_action( 'woocommerce_update_product', array( $this, 'add_custom_update_product_hook' ) );
+
 		$updated = $wc_product->save();
 
 		if ( ! $updated ) {
@@ -166,6 +170,14 @@ class Products extends UI_Base {
 		}
 
 		return $updated;
+	}
+
+	public function add_custom_new_product_hook( $product_id ) {
+		do_action( 'zwqoi_new_product_from_quickbooks', $product_id, $this );
+	}
+
+	public function add_custom_update_product_hook( $product_id ) {
+		do_action( 'zwqoi_update_product_from_quickbooks', $product_id, $this );
 	}
 
 	public function set_product_meta( $wc_product, $product, $meta_keys ) {

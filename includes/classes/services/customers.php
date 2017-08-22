@@ -82,7 +82,18 @@ class Customers extends UI_Base {
 			? sanitize_text_field( $qb_object->PrimaryEmailAddr->Address )
 			: $company_slug . '@example.com';
 
-		return wp_create_user( $company_slug, wp_generate_password(), $email );
+		$userdata = array(
+			'user_login' => wp_slash( $company_slug ),
+			'user_email' => wp_slash( $email ),
+			'user_pass'  => wp_generate_password(),
+		);
+
+		$role_for_customer_user = apply_filters( 'zwqoi_role_for_customer_user', '' );
+		if ( get_role( $role_for_customer_user ) ) {
+			$userdata['role'] = $role_for_customer_user;
+		}
+
+		return wp_insert_user( $userdata );
 	}
 
 	public function update_wp_object_with_qb_object( $wp_id, $qb_id ) {
