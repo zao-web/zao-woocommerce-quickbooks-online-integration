@@ -1,10 +1,10 @@
 <?php
 namespace Zao\WC_QBO_Integration\Services;
 
-use Zao\QBO_API\Service;
-use QuickBooksOnline\API;
+use Zao\QBO_API\Service, Zao\WC_QBO_Integration\Base_Trait, QuickBooksOnline\API;
 
 abstract class Base extends Service {
+	use Base_Trait;
 
 	protected static $api;
 	protected static $api_args;
@@ -78,14 +78,6 @@ abstract class Base extends Service {
 		}
 
 		return '';
-	}
-
-	public static function _param( $param, $default = '' ) {
-		return isset( $_REQUEST[ $param ] ) ? $_REQUEST[ $param ] : $default;
-	}
-
-	public static function _param_is( $param, $val_to_check ) {
-		return isset( $_REQUEST[ $param ] ) && $val_to_check === $_REQUEST[ $param ];
 	}
 
 	protected function die_if_error() {

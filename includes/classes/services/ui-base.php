@@ -41,6 +41,7 @@ abstract class UI_Base extends Base {
 	abstract public function get_wp_id( $object );
 	abstract public function get_wp_name( $object );
 	abstract public function get_wp_edit_url( $object );
+	abstract public function disconnect_qb_object( $object );
 	abstract public function validate_qb_object( $qb_id, $force = false );
 	abstract public function import_qb_object( $qb_object );
 	abstract public function update_wp_object_with_qb_object( $wp_id, $qb_object );
@@ -329,17 +330,6 @@ abstract class UI_Base extends Base {
 		$name = '<a href="' . $this->get_wp_edit_url( $object ) . '">' . $link_text . '</a>';
 
 		return $name;
-	}
-
-	public function get_text( $key, $echo = false ) {
-		$method = 'text_' . $key;
-		$text = $this->{$method}();
-
-		if ( ! $echo ) {
-			return $text;
-		}
-
-		echo $text;
 	}
 
 }

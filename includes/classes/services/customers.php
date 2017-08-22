@@ -192,7 +192,8 @@ class Customers extends UI_Base {
 		if ( 'error' === $item['id'] ) {
 			$html .= '<li class="error">' . $item['name'] . '</li>';
 		} elseif ( ! empty( $item['taken'] ) ) {
-			$user_edit_link = '<a href="' . get_edit_user_link( $item['taken'] ) . '">' . $this->get_wp_name( get_user_by( 'id', $item['taken'] ) ) . '</a>';
+			$user = $this->get_wp_object( $item['taken'] );
+			$user_edit_link = '<a href="' . $this->get_wp_edit_url( $user ) . '">' . $this->get_wp_name( $user ) . '</a>';
 			$html .= '<li><strike>' . $item['name'] . '</strike> ' . sprintf( esc_attr__( 'This Customer is already associated to %s', 'zwqoi' ), $user_edit_link ) . '</li>';
 		} else {
 			$html .= '<li><span class="dashicons dashicons-download"></span> <a href="' . esc_url( $this->import_url( $item['id'] ) ) . '">' . $item['name'] . '</a></li>';
@@ -301,8 +302,12 @@ class Customers extends UI_Base {
 		return get_edit_user_link( $this->get_wp_id( $object ), 'edit' );
 	}
 
+	public function disconnect_qb_object( $object ) {
+		return delete_user_meta( $this->get_wp_id( $object ), $this->meta_key );
+	}
+
 	public function found_user_error( $message_format, $link_text, \WP_User $user ) {
-		$link = get_edit_user_link( $user->ID );
+		$link = $this->get_wp_edit_url( $user );
 
 		return new \WP_Error(
 			'zwqoi_customer_import_error',

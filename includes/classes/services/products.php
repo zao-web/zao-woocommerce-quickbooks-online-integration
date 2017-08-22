@@ -194,7 +194,7 @@ class Products extends UI_Base {
 	}
 
 	public function text_update_from_qb_button() {
-		return __( 'Sync QuickBooks data to this product', 'zwqoi' );
+		return __( 'Update product with QuickBooks data', 'zwqoi' );
 	}
 
 	public function text_import_as_new_from_qb() {
@@ -287,6 +287,10 @@ class Products extends UI_Base {
 		}
 
 		return get_edit_post_link( $this->get_wp_id( $object ), 'edit' );
+	}
+
+	public function disconnect_qb_object( $object ) {
+		return delete_post_meta( $this->get_wp_id( $object ), $this->meta_key );
 	}
 
 	public function found_product_error( $message_format, $link_text, WP_Post $product ) {

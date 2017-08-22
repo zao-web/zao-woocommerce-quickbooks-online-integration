@@ -8,6 +8,7 @@ class Plugin extends Base {
 	protected $products;
 	protected $invoices;
 	protected $users;
+	protected $wc_products;
 
 	/**
 	 * Creates or returns an instance of this class.
@@ -26,7 +27,8 @@ class Plugin extends Base {
 		$this->customers = new Services\Customers();
 		$this->products = new Services\Products();
 		$this->invoices = new Services\Invoices();
-		$this->users = new Users( $this->customers );
+		$this->users = new Admin\Users( $this->customers );
+		$this->wc_products = new Admin\Products( $this->products );
 	}
 
 	public function init() {
@@ -35,6 +37,7 @@ class Plugin extends Base {
 		$this->products->init();
 		$this->invoices->init();
 		$this->users->init();
+		$this->wc_products->init();
 	}
 
 	public function api_init( $api ) {
