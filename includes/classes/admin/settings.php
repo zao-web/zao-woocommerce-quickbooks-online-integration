@@ -26,6 +26,13 @@ class Settings extends Base {
 		add_filter( 'zwoowh_set_wholesale_users_args', array( __CLASS__, 'maybe_limit_wholesalers_to_customers' ) );
 	}
 
+	/**
+	 * Whether we should output the settings form.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @return bool
+	 */
 	public function show_settings() {
 		return true;
 	}
