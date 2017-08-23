@@ -16,11 +16,13 @@ class Customers extends UI_Base {
 		add_action( 'zwqoi_search_page_form_search_types', array( $this, 'add_email_search' ) );
 	}
 
-	public function add_email_search() {
-		?>
-		&nbsp;
-		<label><input type="radio" name="search_type" value="email" <?php checked( self::_param_is( 'search_type', 'email' ) ); ?>/> <?php _e( 'Contact Email', 'zwqoi' ); ?></label>
-		<?php
+	public function add_email_search( $service ) {
+		if ( $service === $this ) {
+			?>
+			&nbsp;
+			<label><input type="radio" name="search_type" value="email" <?php checked( self::_param_is( 'search_type', 'email' ) ); ?>/> <?php _e( 'Contact Email', 'zwqoi' ); ?></label>
+			<?php
+		}
 	}
 
 	public function add_nav_link( $links ) {
