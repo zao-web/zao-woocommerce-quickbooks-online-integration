@@ -1,0 +1,222 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "This file is @generated automatically"
+    ],
+
+
+
+
+    "hash": "b64c33052c7954dd56b18249b21a99d3",
+    "content-hash": "447501017dd758f799cf2d2796b21ca7",
+    "packages": [],
+    "packages-dev": [
+        {
+            "name": "quickbooks/v3-php-sdk",
+            "version": "V3.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/intuit/QuickBooks-V3-PHP-SDK.git",
+                "reference": "ae806ee2f05b3cc083e0bf8783acf50fc91aa195"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/intuit/QuickBooks-V3-PHP-SDK/zipball/ae806ee2f05b3cc083e0bf8783acf50fc91aa195",
+                "reference": "ae806ee2f05b3cc083e0bf8783acf50fc91aa195",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.6.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^5.7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "QuickBooksOnline\\API\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "hlu2",
+                    "email": "Hao_Lu@intuit.com"
+                }
+            ],
+            "description": "The Official PHP SDK for QuickBooks Online Accounting API",
+            "homepage": "http://developer.intuit.com",
+            "keywords": [
+                "api",
+                "http",
+                "quickbooks",
+                "rest",
+                "smallbusiness"
+            ],
+            "time": "2017-08-17 00:12:55"
+        },
+        {
+            "name": "webdevstudios/cmb2",
+            "version": "dev-trunk",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/CMB2/CMB2.git",
+                "reference": "422370c003097c50c954dbdc6c5dfe2ad9eb3cf5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/CMB2/CMB2/zipball/422370c003097c50c954dbdc6c5dfe2ad9eb3cf5",
+                "reference": "422370c003097c50c954dbdc6c5dfe2ad9eb3cf5",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">5.2.4"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "3.7.*"
+            },
+            "suggest": {
+                "composer/installers": "~1.0"
+            },
+            "type": "wordpress-plugin",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0+"
+            ],
+            "authors": [
+                {
+                    "name": "WebDevStudios",
+                    "email": "contact@webdevstudios.com",
+                    "homepage": "https://github.com/WebDevStudios",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Justin Sternberg",
+                    "email": "justin@dsgnwrks.pro",
+                    "homepage": "https://dsgnwrks.pro",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Zao",
+                    "email": "office@zao.com",
+                    "homepage": "http://zao.is",
+                    "role": "Developer"
+                }
+            ],
+            "description": "CMB2 is a metabox, custom fields, and forms library for WordPress that will blow your mind.",
+            "homepage": "https://github.com/CMB2/CMB2",
+            "keywords": [
+                "metabox",
+                "plugin",
+                "wordpress"
+            ],
+            "time": "2017-08-22 18:23:24"
+        },
+        {
+            "name": "zao-web/qbo-connect",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zao-web/quickbooks-online-connect.git",
+                "reference": "0ee19b69aee1429deb7698f47fb868a05d7409c2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/0ee19b69aee1429deb7698f47fb868a05d7409c2",
+                "reference": "0ee19b69aee1429deb7698f47fb868a05d7409c2",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">5.3",
+                "quickbooks/v3-php-sdk": "^3.3"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "lib"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0+"
+            ],
+            "authors": [
+                {
+                    "name": "Zao",
+                    "email": "jt@zao.is",
+                    "homepage": "https://github.com/zao-web",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Helper class for connecting to Quickbooks Online over OAuth.",
+            "homepage": "https://github.com/zao-web/qbo-connect",
+            "keywords": [
+                "json",
+                "wordpress",
+                "wp-api"
+            ],
+            "time": "2017-08-22 01:33:00"
+        },
+        {
+            "name": "zao-web/qbo-connect-ui",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/zao-web/quickbooks-online-connect-ui.git",
+                "reference": "34f158cd595490a5fcd1ee81476e608c17073eb5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect-ui/zipball/34f158cd595490a5fcd1ee81476e608c17073eb5",
+                "reference": "34f158cd595490a5fcd1ee81476e608c17073eb5",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">5.3",
+                "webdevstudios/cmb2": "dev-master",
+                "zao-web/qbo-connect": "dev-master"
+            },
+            "type": "wordpress-plugin",
+            "autoload": {
+                "classmap": [
+                    "includes"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0+"
+            ],
+            "authors": [
+                {
+                    "name": "Zao",
+                    "email": "jt@zao.is",
+                    "homepage": "https://github.com/zao-web",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Provides UI for connecting to Quickbooks Online over OAuth.",
+            "homepage": "https://github.com/zao-web/qbo-connect-ui",
+            "keywords": [
+                "json",
+                "wordpress",
+                "wp-api"
+            ],
+            "time": "2017-08-23 18:39:59"
+        }
+    ],
+    "aliases": [],
+    "minimum-stability": "dev",
+    "stability-flags": {
+        "zao-web/qbo-connect-ui": 20
+    },
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {
+        "php": ">=5.6"
+    },
+    "platform-dev": []
+}
