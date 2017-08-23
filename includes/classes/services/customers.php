@@ -13,6 +13,14 @@ class Customers extends UI_Base {
 	public function init() {
 		parent::init();
 		add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_nav_link' ), 6 );
+		add_action( 'zwqoi_search_page_form_search_types', array( $this, 'add_email_search' ) );
+	}
+
+	public function add_email_search() {
+		?>
+		&nbsp;
+		<label><input type="radio" name="search_type" value="email" <?php checked( self::_param_is( 'search_type', 'email' ) ); ?>/> <?php _e( 'Contact Email', 'zwqoi' ); ?></label>
+		<?php
 	}
 
 	public function add_nav_link( $links ) {
@@ -255,7 +263,7 @@ class Customers extends UI_Base {
 	}
 
 	public function text_search_placeholder() {
-		return __( 'Company Name or Id', 'zwqoi' );
+		return __( 'Enter search term', 'zwqoi' );
 	}
 
 	public function text_object_single_name_name() {
@@ -348,9 +356,14 @@ class Customers extends UI_Base {
 	}
 
 	public function search_query_format( $search_type ) {
-		return 'name' === $search_type
-			? "SELECT * FROM Customer WHERE CompanyName = %s"
-			: "SELECT * FROM Customer WHERE Id = %s";
+		switch ( $search_type ) {
+			case 'name':
+				return "SELECT * FROM Customer WHERE CompanyName = %s";
+			case 'email':
+				return "SELECT * FROM Customer WHERE PrimaryEmailAddr = %s";
+			default:
+				return "SELECT * FROM Customer WHERE Id = %s";
+		}
 	}
 
 	public function get_wp_object( $wp_id ) {

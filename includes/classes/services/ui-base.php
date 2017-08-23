@@ -162,7 +162,7 @@ abstract class UI_Base extends Base {
 		if ( null === $this->search_results ) {
 			$this->search_results = $this->search_results(
 				wp_unslash( $_POST['search_term'] ),
-				self::_param_is( 'search_type', 'id' ) ? 'id' : 'name'
+				wp_unslash( self::_param( 'search_type' ) )
 			);
 
 			$this->results_count = count( $this->search_results );
@@ -179,7 +179,7 @@ abstract class UI_Base extends Base {
 
 		$result_items = array();
 
-		$search_term = 'name' === $search_type ? sanitize_text_field( $search_term ) : absint( $search_term );
+		$search_term = 'id' === $search_type ? absint( $search_term ) : sanitize_text_field( $search_term );
 		if ( empty( $search_term ) ) {
 			return $result_items;
 		}

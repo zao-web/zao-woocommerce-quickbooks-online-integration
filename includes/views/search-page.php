@@ -36,6 +36,7 @@
 				<label><input type="radio" name="search_type" value="name" <?php checked( ! isset( $_POST['search_type'] ) || self::_param_is( 'search_type', 'name' ) ); ?> /> <?php $this->get_text( 'object_single_name_name', true ); ?></label>
 				&nbsp;
 				<label><input type="radio" name="search_type" value="id" <?php checked( self::_param_is( 'search_type', 'id' ) ); ?>/> <?php $this->get_text( 'object_id_name', true ); ?></label>
+				<?php do_action( 'zwqoi_search_page_form_search_types', $this ); ?>
 			</p>
 			<?php submit_button( $this->get_text( 'submit_button' ) ); ?>
 		</form>
