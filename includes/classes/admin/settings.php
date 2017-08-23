@@ -14,7 +14,6 @@ class Settings extends Base {
 		add_action( 'cmb2_admin_init', array( $this, 'register_theme_options_metabox' ) );
 		add_filter( 'plugin_action_links_' . ZWQOI_BASENAME, array( $this, 'settings_link' ) );
 		add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_nav_link' ), 5 );
-		add_filter( 'zwqoi_settings_nav_links', array( $this, 'maybe_add_connect_link' ), 20 );
 
 		add_action( 'cmb2_save_options-page_fields_' . self::KEY . '_box', array( $this, 'maybe_reset_wholesale_users_cache' ), 10, 2 );
 
@@ -24,6 +23,12 @@ class Settings extends Base {
 		add_filter( 'zwqoi_role_for_customer_user', array( __CLASS__, 'maybe_set_wholesaler_role' ) );
 		add_action( 'zwqoi_new_product_from_quickbooks', array( __CLASS__, 'maybe_set_wholesale_category' ) );
 		add_filter( 'zwoowh_set_wholesale_users_args', array( __CLASS__, 'maybe_limit_wholesalers_to_customers' ) );
+
+		if ( function_exists( 'qbo_connect_ui' ) && is_object( qbo_connect_ui()->settings ) ) {
+			add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_connect_link' ), 20 );
+			remove_action( 'qbo_connect_ui_settings_output', array( qbo_connect_ui()->settings, 'settings_title_output' ) );
+			add_action( 'qbo_connect_ui_settings_output', array( '\\Zao\\WC_QBO_Integration\\Services\\UI_Base', 'admin_page_title' ) );
+		}
 	}
 
 	/**
@@ -82,13 +87,14 @@ class Settings extends Base {
 	 *
 	 * @return array
 	 */
-	public function maybe_add_connect_link( $links ) {
-		if ( function_exists( 'qbo_connect_ui' ) && qbo_connect_ui()->settings ) {
-			$links[] = array(
-				'text' => esc_html__( 'QuickBooks API Connect', 'zwqoi' ),
-				'url'  => qbo_connect_ui()->settings->settings_url(),
-			);
-		}
+	public function add_connect_link( $links ) {
+		$links[] = array(
+			'text'   => esc_html__( 'QuickBooks API Connect', 'zwqoi' ),
+			'url'    => qbo_connect_ui()->settings->settings_url(),
+			'active' => \Zao\WC_QBO_Integration\Services\UI_Base::admin_page_matches(
+				qbo_connect_ui()->settings->settings_url()
+			),
+		);
 
 		return $links;
 	}
