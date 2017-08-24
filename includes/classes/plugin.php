@@ -27,7 +27,7 @@ class Plugin extends Base {
 	protected function __construct() {
 		$this->customers = new Services\Customers();
 		$this->products = new Services\Products();
-		$this->invoices = new Services\Invoices();
+		$this->invoices = new Services\Invoices( $this->customers, $this->products );
 		$this->users = new Admin\Users( $this->customers );
 		$this->wc_products = new Admin\Products( $this->products );
 		$this->settings = new Admin\Settings();
