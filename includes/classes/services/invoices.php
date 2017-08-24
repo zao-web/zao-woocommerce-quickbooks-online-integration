@@ -80,9 +80,6 @@ class Invoices extends Base {
 				sprintf( __( 'There was an error creating a QuickBooks Invoice for this order: %d', 'zwqoi' ), $order->get_id() ),
 				$error
 			);
-
-			// @dev
-			$result = self::fault_handler_error_output( $error );
 		} else {
 			$result = $result[1];
 		}
@@ -102,6 +99,8 @@ class Invoices extends Base {
 
 		$has_changes = $this->has_changes( $args, $invoice );
 
+		// error_log( __FUNCTION__ . ':' . __LINE__ .') $has_changes: '. print_r( $has_changes, true ) );
+		// error_log( __FUNCTION__ . ':' . __LINE__ .') $args: '. print_r( $args, true ) );
 		if ( ! $has_changes ) {
 			return false;
 		}
@@ -116,6 +115,8 @@ class Invoices extends Base {
 		$error  = $this->get_error();
 
 		if ( $error ) {
+			// error_log( __FUNCTION__ . ':' . __LINE__ .') $result: '. print_r( $result, true ) );
+			// error_log( __FUNCTION__ . ':' . __LINE__ .') $error: '. print_r( $error, true ) );
 			return new WP_Error(
 				'zwqoi_invoice_update_error',
 				sprintf( __( 'There was an error updating a QuickBooks Invoice for this order: %d', 'zwqoi' ), $this->get_wp_id( $order ) ),
@@ -131,15 +132,14 @@ class Invoices extends Base {
 	}
 
 	protected function qb_object_args( $wp_object ) {
-		$order = $this->get_wp_object( $wp_object );
-
+		$order          = $this->get_wp_object( $wp_object );
 		$qb_customer_id = $this->get_order_customer_id( $order->get_user_id() );
+
 		if ( is_wp_error( $qb_customer_id ) ) {
 			return false;
 		}
 
 		$customer = new WC_Customer( $order->get_user_id() );
-		// $preferences = $this->get_preferences();
 
 		$args = array(
 			'CustomerRef' => array(
@@ -148,7 +148,9 @@ class Invoices extends Base {
 			'Line' => array(),
 		);
 
-		$line_items     = $order->get_items( 'line_item' );
+		$line_items = $order->get_items( 'line_item' );
+
+		// TODO: Add the following items to the invoice.
 		// $tax_lines      = $order->get_items( 'tax' );
 		// $shipping_lines = $order->get_items( 'shipping' );
 		// $fee_lines      = $order->get_items( 'fee' );
@@ -170,7 +172,6 @@ class Invoices extends Base {
 
 				$item_id = $this->products->get_connected_qb_id( $product );
 
-				// wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(), true ) .'</xmp>' );
 				if ( ! $item_id && apply_filters( 'zwqoi_create_items_from_invoice_products', true ) ) {
 					$result = $this->products->create_qb_object_from_wp_object( $product );
 					$item_id = isset( $result->Id ) ? $result->Id : 0;
@@ -183,19 +184,11 @@ class Invoices extends Base {
 					);
 				}
 
-				// $query = $wpdb->prepare(
-				// 	$this->search_query_format( $search_type ),
-				// 	$search_term
-				// );
-
-				// $results = $this->query( $query );
-
-				// $error = $this->get_error();
-
 				$args['Line'][] = $line;
 			}
 		}
 
+		// $preferences = $this->get_preferences();
 		// if ( ! empty( $preferences->SalesFormsPrefs->CustomTxnNumbers ) && 'false' !== $preferences->SalesFormsPrefs->CustomTxnNumbers ) {
 			$args['DocNumber'] = $order->get_id();
 		// }
@@ -206,17 +199,18 @@ class Invoices extends Base {
 	public function has_changes( $args, $compare ) {
 		foreach ( $args as $key => $value ) {
 
-			$inv_value = null;
-			$type = null;
+			$compare_value = null;
+			$type          = null;
+
 			if ( is_scalar( $compare ) ) {
 				$type = 'scalar';
-				$inv_value = $compare;
+				$compare_value = $compare;
 			} elseif ( is_object( $compare ) && isset( $compare->{$key} ) ) {
 				$type = 'object';
-				$inv_value = $compare->{$key};
+				$compare_value = $compare->{$key};
 			} elseif ( is_array( $compare ) && isset( $compare[ $key ] ) ) {
 				$type = 'array';
-				$inv_value = $compare[ $key ];
+				$compare_value = $compare[ $key ];
 			}
 
 			if (
@@ -227,43 +221,33 @@ class Invoices extends Base {
 					continue;
 				}
 
-				return array(
-					'inv_value'  => $inv_value,
-					'new_value'  => $value,
-					'type'       => $type,
-					'to_compare' => $compare,
-				);
+				return compact( 'compare_value', 'value', 'type', 'compare' );
 			}
 
 			// Recurse.
 			if ( is_array( $value ) ) {
-				$has_changes = $this->has_changes( $value, $inv_value );
+				$has_changes = $this->has_changes( $value, $compare_value );
 				if ( $has_changes ) {
 					return $has_changes;
 				}
 				continue;
 			}
 
-			if ( $inv_value !== ( is_scalar( $value ) ? (string) $value : $value ) ) {
-				if ( is_numeric( $value ) && is_numeric( $inv_value ) )  {
-					$float = false !== strpos( $value, '.' ) || false !== strpos( $inv_value, '.' );
+			if ( $compare_value !== ( is_scalar( $value ) ? (string) $value : $value ) ) {
+				if ( is_numeric( $value ) && is_numeric( $compare_value ) )  {
+					$float = false !== strpos( $value, '.' ) || false !== strpos( $compare_value, '.' );
 					if ( $float ) {
 						$value = number_format( $value, 2 );
-						$inv_value = number_format( $inv_value, 2 );
+						$compare_value = number_format( $compare_value, 2 );
 					} else {
 						$value = intval( $value );
-						$inv_value = intval( $inv_value );
+						$compare_value = intval( $compare_value );
 					}
 				}
 			}
 
-			if ( $inv_value !== ( is_scalar( $value ) ? (string) $value : $value ) ) {
-				return array(
-					'inv_value'  => $inv_value,
-					'new_value'  => $value,
-					'type'       => $type,
-					'to_compare' => $compare,
-				);
+			if ( $compare_value !== ( is_scalar( $value ) ? (string) $value : $value ) ) {
+				return compact( 'compare_value', 'value', 'type', 'compare' );
 			}
 		}
 	}
