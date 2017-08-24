@@ -62,7 +62,6 @@ class Invoices extends Base {
 		}
 
 		$args = $this->qb_object_args( $order );
-		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
 
 		if ( is_wp_error( $args ) ) {
 			return $args;
@@ -88,8 +87,6 @@ class Invoices extends Base {
 			$result = $result[1];
 		}
 
-
-		// wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( compact( 'args', 'result' ), true ) .'</xmp>' );
 		return $result;
 	}
 
@@ -102,8 +99,12 @@ class Invoices extends Base {
 		}
 
 		$args = $this->qb_object_args( $order );
-		// echo '<xmp>'. __LINE__ .') $invoice: '. print_r( $invoice, true ) .'</xmp>';
-		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
+
+		$has_changes = $this->has_changes( $args, $invoice );
+
+		if ( ! $has_changes ) {
+			return false;
+		}
 
 		if ( is_wp_error( $args ) ) {
 			return $args;
@@ -144,14 +145,6 @@ class Invoices extends Base {
 			'CustomerRef' => array(
 				'value' => $qb_customer_id,
 			),
-			'CustomField' =>  array(
-				array(
-					'DefinitionId' => '1',
-					'Name'         => __( 'WordPress Order ID', 'zwqoi' ),
-					'Type'         => 'StringType',
-					'StringValue'  => $order->get_id(),
-				)
-			),
 			'Line' => array(),
 		);
 
@@ -167,10 +160,10 @@ class Invoices extends Base {
 
 				$line = array(
 					'Description'         => $item->get_name(),
-					'Amount'              => $item->get_total(),
+					'Amount'              => number_format( $item->get_total(), 2 ),
 					'DetailType'          => 'SalesItemLineDetail',
 					'SalesItemLineDetail' => array(
-						'UnitPrice' => $product->get_price(),
+						'UnitPrice' => number_format( $product->get_price(), 2 ),
 						'Qty'       => max( 1, $item->get_quantity() ),
 					),
 				);
@@ -208,6 +201,71 @@ class Invoices extends Base {
 		// }
 
 		return $args;
+	}
+
+	public function has_changes( $args, $compare ) {
+		foreach ( $args as $key => $value ) {
+
+			$inv_value = null;
+			$type = null;
+			if ( is_scalar( $compare ) ) {
+				$type = 'scalar';
+				$inv_value = $compare;
+			} elseif ( is_object( $compare ) && isset( $compare->{$key} ) ) {
+				$type = 'object';
+				$inv_value = $compare->{$key};
+			} elseif ( is_array( $compare ) && isset( $compare[ $key ] ) ) {
+				$type = 'array';
+				$inv_value = $compare[ $key ];
+			}
+
+			if (
+				is_object( $compare ) && ! isset( $compare->{$key} )
+				|| is_array( $compare ) && ! isset( $compare[ $key ] )
+			) {
+				if ( $compare === ( is_scalar( $value ) ? (string) $value : $value ) ) {
+					continue;
+				}
+
+				return array(
+					'inv_value'  => $inv_value,
+					'new_value'  => $value,
+					'type'       => $type,
+					'to_compare' => $compare,
+				);
+			}
+
+			// Recurse.
+			if ( is_array( $value ) ) {
+				$has_changes = $this->has_changes( $value, $inv_value );
+				if ( $has_changes ) {
+					return $has_changes;
+				}
+				continue;
+			}
+
+			if ( $inv_value !== ( is_scalar( $value ) ? (string) $value : $value ) ) {
+				if ( is_numeric( $value ) && is_numeric( $inv_value ) )  {
+					$float = false !== strpos( $value, '.' ) || false !== strpos( $inv_value, '.' );
+					if ( $float ) {
+						$value = number_format( $value, 2 );
+						$inv_value = number_format( $inv_value, 2 );
+					} else {
+						$value = intval( $value );
+						$inv_value = intval( $inv_value );
+					}
+				}
+			}
+
+			if ( $inv_value !== ( is_scalar( $value ) ? (string) $value : $value ) ) {
+				return array(
+					'inv_value'  => $inv_value,
+					'new_value'  => $value,
+					'type'       => $type,
+					'to_compare' => $compare,
+				);
+			}
+		}
 	}
 
 	public function update_connected_qb_id( $wp_id, $meta_value ) {
