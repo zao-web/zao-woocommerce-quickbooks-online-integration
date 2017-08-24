@@ -9,7 +9,6 @@ abstract class UI_Base extends Base {
 	protected $admin_page_slug  = '';
 	protected $update_query_var = '';
 	protected $import_query_var = '';
-	protected $meta_key         = '';
 
 	/*
 	 * Text methods
@@ -32,23 +31,9 @@ abstract class UI_Base extends Base {
 
 	abstract public function admin_page_url();
 	abstract protected function output_result_item( $item );
-	abstract protected function search_query_format( $search_type );
-	abstract public function query_wp_by_qb_id( $qb_id );
-	abstract public function query_wp_by_qb_ids( $qb_ids, $key_value = true );
-	abstract public function get_by_id( $qb_id );
-	abstract public function is_wp_object( $object );
-	abstract public function get_wp_object( $wp_id );
-	abstract public function get_wp_id( $object );
-	abstract public function get_wp_name( $object );
-	abstract public function get_wp_edit_url( $object );
-	abstract public function disconnect_qb_object( $object );
 	abstract public function validate_qb_object( $qb_id, $force = false );
 	abstract protected function import_qb_object( $qb_object );
 	abstract public function update_wp_object_with_qb_object( $wp_id, $qb_object );
-
-	public function parent_slug() {
-		return '';
-	}
 
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'register_qb_search_page' ), 999 );
@@ -84,6 +69,10 @@ abstract class UI_Base extends Base {
 		}
 
 		call_user_func_array( $func, $args );
+	}
+
+	public function parent_slug() {
+		return '';
 	}
 
 	public function search_page() {
@@ -237,24 +226,29 @@ abstract class UI_Base extends Base {
 	 * Utilities
 	 */
 
-	public static function admin_page_title() {
+	public static function admin_page_title( $echo = true ) {
 		$links = apply_filters( 'zwqoi_settings_nav_links', array() );
 		if ( empty( $links ) ) {
-			echo '<h2>' . get_admin_page_title() . '</h2>';
+			$title = '<h2>' . get_admin_page_title() . '</h2>';
+		} else {
+			$title = '<h2 class="nav-tab-wrapper">';
+			foreach ( $links as $item ) {
+				$title .= sprintf(
+					'<a href="%1$s" class="nav-tab%2$s">%3$s</a>',
+					$item['url'],
+					! empty( $item['active'] ) ? ' nav-tab-active' : '' ,
+					$item['text']
+				);
+			}
+			$title .= '</h2>';
+
 		}
 
-		$nav = '<h2 class="nav-tab-wrapper">';
-		foreach ( $links as $item ) {
-			$nav .= sprintf(
-				'<a href="%1$s" class="nav-tab%2$s">%3$s</a>',
-				$item['url'],
-				! empty( $item['active'] ) ? ' nav-tab-active' : '' ,
-				$item['text']
-			);
+		if ( $echo ) {
+			echo $title;
+		} else {
+			return $title;
 		}
-		$nav .= '</h2>';
-
-		echo $nav;
 	}
 
 	public function settings_url( $args = array() ) {
@@ -352,17 +346,25 @@ abstract class UI_Base extends Base {
 		return $name;
 	}
 
-	public function is_on_admin_page() {
-		$curr = remove_query_arg( 'testtest' );
-		$curr = parse_url( $curr );
-		$admin_url = $this->admin_page_url();
-		$admin_url = parse_url( $admin_url );
+	public static function admin_page_matches( $page_url ) {
+		$parts = parse_url( $page_url );
+		$curr  = parse_url( remove_query_arg( 'testtest' ) );
+
+		if ( ! isset( $parts['query'] ) ) {
+			return false;
+		}
+
+		parse_str( $parts['query'], $params );
 
 		return (
-			isset( $curr['path'], $curr['query'], $admin_url['path'], $admin_url['query'] )
-			&& untrailingslashit( $curr['path'] ) === untrailingslashit( $admin_url['path'] )
-			&& $curr['query'] === $admin_url['query']
+			isset( $_GET['page'], $params['page'], $curr['path'], $parts['path'] )
+			&& untrailingslashit( $curr['path'] ) === untrailingslashit( $parts['path'] )
+			&& $_GET['page'] === $params['page']
 		);
+	}
+
+	public function is_on_admin_page() {
+		return self::admin_page_matches( $this->admin_page_url() );
 	}
 
 }

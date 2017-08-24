@@ -106,6 +106,93 @@ class Customers extends UI_Base {
 		return wp_insert_user( $userdata );
 	}
 
+	public function create_qb_object_from_wp_object( $object ) {
+		$user = $this->get_wp_object( $object );
+		if ( ! $user ) {
+			return false;
+		}
+
+		$user_id = $this->get_wp_id( $user );
+
+		$customer = new \WC_Customer( $user_id );
+
+		$args = array(
+			'Notes'       =>  __( 'Created via "Zao WooCommerce QuickBooks Online Integration" plugin.', 'zwqoi' ),
+			'DisplayName' => $this->get_wp_name( $user ),
+			'Active'      => true,
+		);
+
+		if ( $user->user_url ) {
+			$args['WebAddr']['URI'] = $user->user_url;
+		}
+
+		$data_methods = array(
+			'GivenName' => array( 'get_first_name', 'get_billing_first_name', 'get_shipping_first_name' ),
+			'FamilyName' => array( 'get_last_name', 'get_billing_last_name', 'get_shipping_last_name' ),
+			'CompanyName' => array( 'get_billing_company', 'get_shipping_company' ),
+		);
+
+		foreach ( $data_methods as $prop => $methods ) {
+			foreach ( $methods as $method ) {
+				$args[ $prop ] = $customer->{$method}();
+				if ( $args[ $prop ] ) {
+					break;
+				}
+			}
+		}
+
+		$address_methods = array(
+			'address_1' => 'Line1',
+			'address_2' => 'Line2',
+			'city'      => 'City',
+			'state'     => 'CountrySubDivisionCode',
+			'postcode'  => 'PostalCode',
+			'country'   => 'Country',
+		);
+
+		foreach ( $address_methods as $method => $prop ) {
+			$billing_data = call_user_func( array( $customer, 'get_billing_' . $method ) );
+			$shipping_data = call_user_func( array( $customer, 'get_shipping_' . $method ) );
+			if ( $billing_data ) {
+				$args['BillAddr'][ $prop ] = $billing_data;
+			}
+			if ( $shipping_data ) {
+				$args['ShipAddr'][ $prop ] = $shipping_data;
+			}
+		}
+
+		$email = $customer->get_email();
+		if ( ! $email ) {
+			$email = $customer->get_billing_email();
+		}
+		if ( $email ) {
+			$args['PrimaryEmailAddr']['Address'] = $email;
+		}
+
+		$phone = $customer->get_billing_phone();
+		if ( $phone ) {
+			$args['PrimaryPhone']['FreeFormNumber'] = $phone;
+		}
+
+		$results = $this->create( $args );
+
+		$error = $this->get_error();
+
+		if ( $error ) {
+			return new WP_Error(
+				'zwqoi_customer_create_error',
+				sprintf( __( 'There was an error creating a customer for this user: %d', 'zwqoi' ), $user_id ),
+				$error
+			);
+		}
+
+		if ( isset( $results[1]->Id ) ) {
+			$this->update_connected_qb_id( $user_id, $results[1]->Id );
+		}
+
+		return $results[1];
+	}
+
 	public function update_wp_object_with_qb_object( $wp_id, $qb_id ) {
 		$user = $this->is_wp_object( $wp_id ) ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
 
@@ -154,12 +241,24 @@ class Customers extends UI_Base {
 		$updated = wp_update_user( $args );
 
 		if ( $updated && ! is_wp_error( $updated ) ) {
-			if ( update_user_meta( $updated, $this->meta_key, $customer->Id ) ) {
-				do_action( 'zwqoi_customer_connected_to_user', $customer->Id, $updated );
-			}
+			$this->update_connected_qb_id( $updated, $customer->Id );
 		}
 
 		return $updated;
+	}
+
+	public function update_connected_qb_id( $wp_id, $meta_value ) {
+		if ( $this->is_wp_object( $wp_id ) ) {
+			$wp_id = $this->get_wp_id( $wp_id );
+		}
+
+		$result = update_user_meta( $wp_id, $this->meta_key, $meta_value );
+
+		if ( $result ) {
+			do_action( 'zwqoi_customer_connected_to_user', $meta_value, $wp_id );
+		}
+
+		return $result;
 	}
 
 	protected function update_woo_customer( $user_id, $user_args, API\Data\IPPCustomer $customer ) {
@@ -288,31 +387,31 @@ class Customers extends UI_Base {
 	 * Utilities
 	 */
 
-	public function get_by_id( $qb_id ) {
-		$qb_id = absint( $qb_id );
-		if ( empty( $qb_id ) ) {
-			return false;
+	public function search_query_format( $search_type ) {
+		switch ( $search_type ) {
+			case 'name':
+				return "SELECT * FROM Customer WHERE CompanyName = %s";
+			case 'email':
+				return "SELECT * FROM Customer WHERE PrimaryEmailAddr = %s";
+			default:
+				return "SELECT * FROM Customer WHERE Id = %s";
 		}
+	}
 
-		$customer = $this->query(
-			"SELECT * FROM Customer WHERE Id LIKE '{$qb_id}'"
+	public function get_by_id_error( $error, $qb_id ) {
+		return new WP_Error(
+			'zwqoi_customer_get_by_id_error',
+			sprintf( __( 'There was an error retrieving this customer: %d', 'zwqoi' ), $qb_id ),
+			$error
 		);
-
-		$error = $this->get_error();
-
-		if ( $error ) {
-			return new \WP_Error(
-				'zwqoi_customer_get_by_id_error',
-				sprintf( __( 'There was an error importing this user: %d', 'zwqoi' ), $qb_id ),
-				$error
-			);
-		}
-
-		return is_array( $customer ) ? end( $customer ) : $customer;
 	}
 
 	public function is_wp_object( $object ) {
 		return $object instanceof \WP_User;
+	}
+
+	public function get_wp_object( $wp_id ) {
+		return $this->is_wp_object( $wp_id ) ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
 	}
 
 	public function get_wp_id( $object ) {
@@ -331,20 +430,30 @@ class Customers extends UI_Base {
 		return $object->display_name;
 	}
 
-	public function get_wp_edit_url( $object ) {
-		$object = $this->get_wp_object( $object );
-		if ( ! $object ) {
-			return '';
+	public function get_wp_edit_url( $wp_id ) {
+		if ( $this->is_wp_object( $wp_id ) ) {
+			$wp_id = $this->get_wp_id( $wp_id );
 		}
 
-		return get_edit_user_link( $this->get_wp_id( $object ), 'edit' );
+		return get_edit_user_link( $wp_id, 'edit' );
 	}
 
-	public function disconnect_qb_object( $object ) {
-		$user_id = $this->get_wp_id( $object );
-		if ( delete_user_meta( $user_id, $this->meta_key ) ) {
-			do_action( 'zwqoi_customer_disconnect_user', $user_id );
+	public function disconnect_qb_object( $wp_id ) {
+		if ( $this->is_wp_object( $wp_id ) ) {
+			$wp_id = $this->get_wp_id( $wp_id );
 		}
+
+		if ( delete_user_meta( $wp_id, $this->meta_key ) ) {
+			do_action( 'zwqoi_customer_disconnect_user', $wp_id );
+		}
+	}
+
+	public function get_connected_qb_id( $wp_id ) {
+		if ( $this->is_wp_object( $wp_id ) ) {
+			$wp_id = $this->get_wp_id( $wp_id );
+		}
+
+		return get_user_meta( $wp_id, $this->meta_key, true );
 	}
 
 	public function found_user_error( $message_format, $link_text, \WP_User $user ) {
@@ -355,21 +464,6 @@ class Customers extends UI_Base {
 			sprintf( $message_format, '<a href="' . $link . '">' . $link_text . '</a>' ),
 			$user
 		);
-	}
-
-	public function search_query_format( $search_type ) {
-		switch ( $search_type ) {
-			case 'name':
-				return "SELECT * FROM Customer WHERE CompanyName = %s";
-			case 'email':
-				return "SELECT * FROM Customer WHERE PrimaryEmailAddr = %s";
-			default:
-				return "SELECT * FROM Customer WHERE Id = %s";
-		}
-	}
-
-	public function get_wp_object( $wp_id ) {
-		return $this->is_wp_object( $wp_id ) ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
 	}
 
 	public function get_qb_object_name( $qb_object ) {
@@ -464,6 +558,17 @@ class Customers extends UI_Base {
 		return $existing;
 	}
 
+	/**
+	 * The DisplayName attribute or at least one of Title, GivenName,
+	 * MiddleName, FamilyName, or Suffix attributes is required during
+	 * object create.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array  $args Array of customer args.
+	 *
+	 * @return array
+	 */
 	public function create( $args ) {
 		return $this->create_customer( $args );
 		/**

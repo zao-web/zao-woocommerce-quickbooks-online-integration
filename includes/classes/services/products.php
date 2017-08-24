@@ -2,6 +2,7 @@
 namespace Zao\WC_QBO_Integration\Services;
 
 use QuickBooksOnline\API, WC_Product, WP_Post, WP_Error, WP_Query;
+use Zao\WC_QBO_Integration\Admin\Settings;
 
 class Products extends UI_Base {
 
@@ -9,7 +10,8 @@ class Products extends UI_Base {
 	protected $update_query_var = 'update_product';
 	protected $import_query_var = 'import_product';
 	protected $meta_key         = '_qb_product_id';
-	protected $sync_meta_keys = array(
+	protected $post_type        = 'product';
+	protected $sync_meta_keys   = array(
 		'SubItem',
 		'ParentRef',
 		'Level',
@@ -150,12 +152,11 @@ class Products extends UI_Base {
 				'QtyOnPurchaseOrder',
 				'QtyOnSalesOrder',
 			) );
-
 		}
 
 		$this->set_product_meta( $wc_product, $product, $this->sync_meta_keys );
 
-		$wc_product->update_meta_data( $this->meta_key, $product->Id );
+		$this->update_connected_qb_id( $wc_product, $product->Id );
 
 		add_action( 'woocommerce_new_product', array( $this, 'add_custom_new_product_hook' ) );
 		add_action( 'woocommerce_update_product', array( $this, 'add_custom_update_product_hook' ) );
@@ -172,12 +173,89 @@ class Products extends UI_Base {
 		return $updated;
 	}
 
+	public function update_connected_qb_id( $wp_id, $meta_value ) {
+		if ( ! ( $wp_id instanceof WC_Product ) ) {
+			return false;
+		}
+
+		$wp_id->update_meta_data( $this->meta_key, $meta_value );
+
+		return $wp_id;
+	}
+
 	public function add_custom_new_product_hook( $product_id ) {
 		do_action( 'zwqoi_new_product_from_quickbooks', $product_id, $this );
 	}
 
 	public function add_custom_update_product_hook( $product_id ) {
 		do_action( 'zwqoi_update_product_from_quickbooks', $product_id, $this );
+	}
+
+	public function create_qb_object_from_wp_object( $object ) {
+		if ( $object instanceof WC_Product ) {
+			$product = $object;
+		} else {
+
+			$id = is_numeric( $object ) ? $object : $this->get_wp_id( $object );
+			if ( ! $id ) {
+				return false;
+			}
+
+			$product = wc_get_product( $id );
+			if ( ! $product ) {
+				return false;
+			}
+		}
+
+		$accounts = Settings::get_accounts();
+
+		if ( ! $accounts ) {
+			return false;
+		}
+
+		$args = array(
+			'Name'               => $product->get_name(),
+			'FullyQualifiedName' => $product->get_name(),
+			'Description'        => $product->get_description(),
+			'Active'             => 'publish' === $product->get_status(),
+			'Taxable'            => 'taxable' === $product->get_tax_status(),
+			'UnitPrice'          => $product->get_price(),
+			'Sku'                => $product->get_sku(),
+			'TrackQtyOnHand'     => !! $product->get_manage_stock(),
+			'QtyOnHand'          => $product->get_stock_quantity(),
+			'Type'               => 'Inventory',
+			'InvStartDate'       => new \DateTime( 'NOW' ),
+			'IncomeAccountRef'   => array(
+				'value' => $accounts['income']->Id,
+				'name' => $accounts['income']->Name,
+			),
+			'ExpenseAccountRef' => array(
+				'value' => $accounts['expense']->Id,
+				'name' => $accounts['expense']->Name,
+			),
+			'AssetAccountRef' => array(
+				'value' => $accounts['inventory_asset']->Id,
+				'name' => $accounts['inventory_asset']->Name,
+			),
+		);
+
+		$result = $this->create( $args );
+		$error = $this->get_error();
+		error_log( __METHOD__ . ' : '. print_r( get_defined_vars(), true ) );
+
+		if ( $error ) {
+			return new WP_Error(
+				'zwqoi_product_create_error',
+				sprintf( __( 'There was an error creating a QuickBooks Item for this product: %d', 'zwqoi' ), $product->get_id() ),
+				$error
+			);
+		}
+
+		if ( isset( $results[1]->Id ) ) {
+			$this->update_connected_qb_id( $product, $results[1]->Id )->save();
+		}
+
+		return $result[1];
 	}
 
 	public function set_product_meta( $wc_product, $product, $meta_keys ) {
@@ -251,31 +329,26 @@ class Products extends UI_Base {
 	 * Utilities
 	 */
 
-	public function get_by_id( $qb_id ) {
-		$qb_id = absint( $qb_id );
-		if ( empty( $qb_id ) ) {
-			return false;
-		}
+	public function search_query_format( $search_type ) {
+		return 'name' === $search_type
+			? "SELECT * FROM Item WHERE Name = %s"
+			: "SELECT * FROM Item WHERE Id = %s";
+	}
 
-		$product = $this->query(
-			"SELECT * FROM Item WHERE Id LIKE '{$qb_id}'"
+	public function get_by_id_error( $error, $qb_id ) {
+		return new WP_Error(
+			'zwqoi_product_get_by_id_error',
+			sprintf( __( 'There was an error retrieving this product: %d', 'zwqoi' ), $qb_id ),
+			$error
 		);
-
-		$error = $this->get_error();
-
-		if ( $error ) {
-			return new WP_Error(
-				'zwqoi_product_get_by_id_error',
-				sprintf( __( 'There was an error importing this product: %d', 'zwqoi' ), $qb_id ),
-				$error
-			);
-		}
-
-		return is_array( $product ) ? end( $product ) : $product;
 	}
 
 	public function is_wp_object( $object ) {
 		return $object instanceof WP_Post || $object instanceof WC_Product;
+	}
+
+	public function get_wp_object( $wp_id ) {
+		return $this->is_wp_object( $wp_id ) ? $wp_id : wc_get_product( absint( $wp_id ) );
 	}
 
 	public function get_wp_id( $object ) {
@@ -306,19 +379,6 @@ class Products extends UI_Base {
 		}
 	}
 
-	public function get_wp_edit_url( $object ) {
-		$object = $this->get_wp_object( $object );
-		if ( ! $object ) {
-			return '';
-		}
-
-		return get_edit_post_link( $this->get_wp_id( $object ), 'edit' );
-	}
-
-	public function disconnect_qb_object( $object ) {
-		return delete_post_meta( $this->get_wp_id( $object ), $this->meta_key );
-	}
-
 	public function found_product_error( $message_format, $link_text, WP_Post $product ) {
 		$link = $this->get_wp_object_edit_link( $product, $link_text );
 
@@ -327,12 +387,6 @@ class Products extends UI_Base {
 			sprintf( $message_format, $link ),
 			$product
 		);
-	}
-
-	public function search_query_format( $search_type ) {
-		return 'name' === $search_type
-			? "SELECT * FROM Item WHERE Name = %s"
-			: "SELECT * FROM Item WHERE Id = %s";
 	}
 
 	public function get_product( $wp_id ) {
@@ -346,10 +400,6 @@ class Products extends UI_Base {
 		}
 
 		return $wc_product;
-	}
-
-	public function get_wp_object( $wp_id ) {
-		return $this->is_wp_object( $wp_id ) ? $wp_id : wc_get_product( absint( $wp_id ) );
 	}
 
 	public function get_qb_object_name( $qb_object ) {
@@ -388,56 +438,6 @@ class Products extends UI_Base {
 		$url = parent::import_url( $qb_id, $force );
 
 		return apply_filters( 'zwqoi_import_product_url', $url, $qb_id );
-	}
-
-	public function query_wp_by_qb_id( $qb_id ) {
-		$args = array(
-			'meta_key'      => $this->meta_key,
-			'meta_value'    => $qb_id,
-			'number'        => 1,
-			'no_found_rows' => true,
-			'post_type'     => 'product',
-		);
-
-		$by_id = new WP_Query( $args );
-
-		if ( empty( $by_id->posts ) ) {
-			return false;
-		}
-
-		return is_array( $by_id->posts ) ? end( $by_id->posts ) : $by_id->posts;
-	}
-
-	public function query_wp_by_qb_ids( $qb_ids, $key_value = true ) {
-		$args = array(
-			'meta_query' => array(
-				array(
-					'key'     => $this->meta_key,
-					'value'   => (array) $qb_ids,
-					'compare' => 'IN',
-				),
-			),
-			'number'        => count( $qb_ids ),
-			'no_found_rows' => true,
-			'post_type'     => 'product',
-		);
-
-		$by_id = new WP_Query( $args );
-
-		if ( empty( $by_id->posts ) ) {
-			return false;
-		}
-
-		if ( ! $key_value ) {
-			return $by_id->posts;
-		}
-
-		$existing = array();
-		foreach ( $by_id->posts as $product ) {
-			$existing[ $product->{$this->meta_key} ] = $product->ID;
-		}
-
-		return $existing;
 	}
 
 	public function create( $args ) {

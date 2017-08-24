@@ -1,16 +1,31 @@
 <?php
 namespace Zao\WC_QBO_Integration\Services;
 
-use Zao\QBO_API\Service, Zao\WC_QBO_Integration\Base_Trait, QuickBooksOnline\API;
+use Zao\QBO_API\Service, Zao\WC_QBO_Integration\Base_Trait, QuickBooksOnline\API, WP_Query;
 
 abstract class Base extends Service {
 	use Base_Trait;
 
 	protected static $api;
 	protected static $api_args;
+	protected $post_type = '';
+	protected $meta_key  = '';
 
 	abstract public function init();
+
+	/*
+	 * Abstract methods
+	 */
+
+	abstract protected function search_query_format( $search_type );
+	abstract public function get_by_id_error( $error, $qb_id );
+	abstract public function is_wp_object( $object );
+	abstract public function get_wp_object( $wp_id );
+	abstract public function get_wp_id( $object );
+	abstract public function get_wp_name( $object );
 	abstract public function create( $args );
+	abstract public function update_connected_qb_id( $wp_id, $meta_value );
+	abstract public function create_qb_object_from_wp_object( $object );
 
 	public static function set_api( $api ) {
 		self::$api = $api;
@@ -110,6 +125,100 @@ abstract class Base extends Service {
 
 	public static function is_fault_handler( $error ) {
 		return $error instanceof API\Core\HttpClients\FaultHandler;
+	}
+
+	public function get_by_id( $qb_id ) {
+		global $wpdb;
+
+		$qb_id = absint( $qb_id );
+		if ( empty( $qb_id ) ) {
+			return false;
+		}
+
+		$query = $wpdb->prepare( $this->search_query_format( 'id' ), $qb_id );
+		$result = $this->query( $query );
+
+		$error = $this->get_error();
+
+		if ( $error ) {
+			return $this->get_by_id_error( $error, $qb_id );
+		}
+
+		return is_array( $result ) ? end( $result ) : $result;
+	}
+
+	public function query_wp_by_qb_id( $qb_id ) {
+		$args = array(
+			'meta_key'      => $this->meta_key,
+			'meta_value'    => $qb_id,
+			'number'        => 1,
+			'no_found_rows' => true,
+			'post_type'     => $this->post_type,
+		);
+
+		$by_id = new WP_Query( $args );
+
+		if ( empty( $by_id->posts ) ) {
+			return false;
+		}
+
+		return is_array( $by_id->posts ) ? end( $by_id->posts ) : $by_id->posts;
+	}
+
+	public function query_wp_by_qb_ids( $qb_ids, $key_value = true ) {
+		$args = array(
+			'meta_query' => array(
+				array(
+					'key'     => $this->meta_key,
+					'value'   => (array) $qb_ids,
+					'compare' => 'IN',
+				),
+			),
+			'number'        => count( $qb_ids ),
+			'no_found_rows' => true,
+			'post_type'     => $this->post_type,
+		);
+
+		$by_id = new WP_Query( $args );
+
+		if ( empty( $by_id->posts ) ) {
+			return false;
+		}
+
+		if ( ! $key_value ) {
+			return $by_id->posts;
+		}
+
+		$existing = array();
+		foreach ( $by_id->posts as $product ) {
+			$existing[ $product->{$this->meta_key} ] = $product->ID;
+		}
+
+		return $existing;
+	}
+
+	public function get_wp_edit_url( $wp_id ) {
+		if ( $this->is_wp_object( $wp_id ) ) {
+			$wp_id = $this->get_wp_id( $wp_id );
+		}
+
+		return get_edit_post_link( $wp_id, 'edit' );
+	}
+
+	public function disconnect_qb_object( $wp_id ) {
+		if ( $this->is_wp_object( $wp_id ) ) {
+			$wp_id = $this->get_wp_id( $wp_id );
+		}
+
+		return delete_post_meta( $wp_id, $this->meta_key );
+	}
+
+	public function get_connected_qb_id( $wp_id ) {
+		if ( $this->is_wp_object( $wp_id ) ) {
+			$wp_id = $this->get_wp_id( $wp_id );
+		}
+
+		return get_post_meta( $wp_id, $this->meta_key, true );
 	}
 
 }
