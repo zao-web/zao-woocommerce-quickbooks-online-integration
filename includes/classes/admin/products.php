@@ -12,16 +12,19 @@ class Products extends Connected_Object_Base {
 		parent::init();
 
 		if ( is_admin() ) {
-
-			$post = self::_param( $this->id_query_var );
-			$post = $post ? get_post( $post ) : false;
-
-			$title = $post && $post->{$this->service->meta_key}
-				? __( 'Connected Quickbooks Product', 'zwqoi' )
-				: __( 'Connect a Quickbooks Product?', 'zwqoi' );
-
-			add_meta_box( 'qb-connect-product', $title, array( $this, 'output_connected_qb_buttons' ), 'product', 'side' );
+			add_action( 'add_meta_boxes', array( $this, 'register_metabox' ) );
 		}
+	}
+
+	public function register_metabox( $args ) {
+		$post = self::_param( $this->id_query_var );
+		$post = $post ? get_post( $post ) : false;
+
+		$title = $post && $post->{$this->service->meta_key}
+			? __( 'Connected Quickbooks Product', 'zwqoi' )
+			: __( 'Connect a Quickbooks Product?', 'zwqoi' );
+
+		add_meta_box( 'qb-connect-product', $title, array( $this, 'output_connected_qb_buttons' ), 'product', 'side' );
 	}
 
 	/*
