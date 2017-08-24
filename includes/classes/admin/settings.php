@@ -23,6 +23,7 @@ class Settings extends Base {
 		add_filter( 'zwqoi_role_for_customer_user', array( __CLASS__, 'maybe_set_wholesaler_role' ) );
 		add_action( 'zwqoi_new_product_from_quickbooks', array( __CLASS__, 'maybe_set_wholesale_category' ) );
 		add_filter( 'zwoowh_set_wholesale_users_args', array( __CLASS__, 'maybe_limit_wholesalers_to_customers' ) );
+		add_filter( 'zwqoi_create_invoice_from_order', array( $this, 'maybe_only_generate_invoices_for_wholesale_orders' ), 10, 2 );
 
 		if ( function_exists( 'qbo_connect_ui' ) && is_object( qbo_connect_ui()->settings ) ) {
 			add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_connect_link' ), 20 );
@@ -38,8 +39,12 @@ class Settings extends Base {
 	 *
 	 * @return bool
 	 */
-	public function show_settings() {
-		return true;
+	public static function should_show_settings() {
+		return (
+			function_exists( 'qbo_connect_ui' )
+			&& is_object( qbo_connect_ui()->api )
+			&& qbo_connect_ui()->api->connected()
+		);
 	}
 
 	/**
@@ -90,13 +95,19 @@ class Settings extends Base {
 	public function add_connect_link( $links ) {
 		$links[] = array(
 			'text'   => esc_html__( 'QuickBooks API Connect', 'zwqoi' ),
-			'url'    => qbo_connect_ui()->settings->settings_url(),
+			'url'    => self::api_settings_page_url(),
 			'active' => \Zao\WC_QBO_Integration\Services\UI_Base::admin_page_matches(
 				qbo_connect_ui()->settings->settings_url()
 			),
 		);
 
 		return $links;
+	}
+
+	public function api_settings_page_url() {
+		if ( function_exists( 'qbo_connect_ui' ) && is_object( qbo_connect_ui()->settings ) ) {
+			return qbo_connect_ui()->settings->settings_url();
+		}
 	}
 
 	/**
@@ -109,20 +120,14 @@ class Settings extends Base {
 		 */
 		$this->cmb = new_cmb2_box( array(
 			'id'           => self::KEY . '_box',
-			// 'title'        => esc_html__( 'Zao WooCommerce QuickBooks Integration Settings', 'zwqoi' ),
+			// 'title'     => esc_html__( 'Zao WooCommerce QuickBooks Integration Settings', 'zwqoi' ),
 			'object_types' => array( 'options-page' ),
-
-			/*
-			 * The following parameters are specific to the options-page box
-			 * Several of these parameters are passed along to add_menu_page()/add_submenu_page().
-			 */
-
-			'option_key'      => self::KEY, // The option key and admin menu page slug.
-			'icon_url'        => 'dashicons-book-alt', // Menu icon. Only applicable if 'parent_slug' is left empty.
-			'menu_title'      => esc_html__( 'QB Woo Integration', 'zwqoi' ), // Falls back to 'title' (above).
-			'parent_slug'     => 'options-general.php', // Make options page a submenu item of the themes menu.
-			// 'save_button'     => esc_html__( 'Save Theme Options', 'zwqoi' ), // The text for the options-page save button. Defaults to 'Save'.
-			'display_cb' => array( $this, 'options_page_output' ),
+			'option_key'   => self::KEY,
+			'icon_url'     => 'dashicons-book-alt',
+			'menu_title'   => esc_html__( 'QB Woo Integration', 'zwqoi' ),
+			'parent_slug'  => 'options-general.php',
+			'display_cb'   => array( $this, 'options_page_output' ),
+			'show_on_cb'   => array( __CLASS__, 'should_show_settings' ),
 		) );
 
 		$this->cmb->add_field( array(
@@ -132,19 +137,35 @@ class Settings extends Base {
 			'type'       => 'title',
 		) );
 
+		$this->cmb->add_field( array(
+			// Only show this field if it is necessary.. if there is more than one account in this category.
+			'show_on_cb' => array( $this, 'field_has_multiple_type_accounts' ),
+			'id'         => 'inventory_asset_account',
+			'name'       => __( 'Inventory asset account for Items', 'zwqoi' ),
+			'desc'       => __( 'Select the Quickbooks Inventory asset account which will associate with any WordPress Products that are syncronized to Quickbooks.', 'zwqoi' ),
+			'type'       => 'select',
+			'options_cb' => array( $this, 'get_field_accounts' )
+		) );
 
-		// $group_field_id is the field id string, so in this case: $prefix . 'demo'
-		// $group_field_id = $this->cmb->add_field( array(
-		// 	'show_on_cb' => array( __CLASS__, 'has_wholesale_plugin' ),
-		// 	'id'          => 'wholesale',
-		// 	'type'        => 'group',
-		// 	// 'description' => esc_html__( 'Settings for Zao WooCommerce Wholesale', 'zwqoi' ),
-		// 	'options'     => array(
-		// 		'group_title'   => esc_html__( 'Wholesale Settings', 'zwqoi' ),
-		// 		// 'group_title'   => esc_html__( 'These settings are specific to the "Zao WooCommerce Wholesale" plugin.', 'zwqoi' ),
-		// 	),
-		// 	'repeatable' => false,
-		// ) );
+		$this->cmb->add_field( array(
+			// Only show this field if it is necessary.. if there is more than one account in this category.
+			'show_on_cb' => array( $this, 'field_has_multiple_type_accounts' ),
+			'id'         => 'income_account',
+			'name'       => __( 'Income account for Items', 'zwqoi' ),
+			'desc'       => __( 'Select the Quickbooks Income account which will associate with any WordPress Products that are syncronized to Quickbooks.', 'zwqoi' ),
+			'type'       => 'select',
+			'options_cb' => array( $this, 'get_field_accounts' )
+		) );
+
+		$this->cmb->add_field( array(
+			// Only show this field if it is necessary.. if there is more than one account in this category.
+			'show_on_cb' => array( $this, 'field_has_multiple_type_accounts' ),
+			'id'         => 'expense_account',
+			'name'       => __( 'Expense account for Items', 'zwqoi' ),
+			'desc'       => __( 'Select the Quickbooks Expense account which will associate with any WordPress Products that are syncronized to Quickbooks.', 'zwqoi' ),
+			'type'       => 'select',
+			'options_cb' => array( $this, 'get_field_accounts' )
+		) );
 
 		$this->cmb->add_field( array(
 			'show_on_cb' => array( __CLASS__, 'has_wholesale_plugin' ),
@@ -178,6 +199,134 @@ class Settings extends Base {
 			'type'       => 'checkbox',
 		) );
 
+		$this->cmb->add_field( array(
+			'show_on_cb' => array( __CLASS__, 'has_wholesale_plugin' ),
+			'name'       => __( 'Disable invoice creation for non-wholesale orders.', 'zwqoi' ),
+			'desc'       => __( 'By default, all orders will generate a corresponding QuickBooks Invoice, and auto-create an associated QuickBooks Customer from the order customer.', 'zwqoi' ),
+			'id'         => 'disable_non_wholesale_invoices',
+			'type'       => 'checkbox',
+		) );
+
+	}
+
+	public static function get_accounts() {
+		$inventory_asset = self::get_type_account( 'inventory_asset_account' );
+		$income          = self::get_type_account( 'income_account' );
+		$expense         = self::get_type_account( 'expense_account' );
+
+		if ( ! $inventory_asset || ! $income || ! $expense ) {
+			return false;
+		}
+
+		return compact( 'inventory_asset', 'income', 'expense' );
+	}
+
+	public static function get_type_account( $field_id ) {
+		$account = false;
+		if ( self::get_option( $field_id ) ) {
+			$account = self::get_option( $field_id );
+		}
+
+		// If multiple, but option is not set, it means we should not default to one.
+		if ( ! $account && self::has_multiple_type_accounts( $field_id ) ) {
+			return false;
+		}
+
+		$accounts = self::get_accounts_of_type( $field_id, false );
+		if ( ! empty( $accounts ) ) {
+			$account = key( $accounts );
+		}
+
+		if ( $account ) {
+			list( $Id, $Name ) = explode( ':', $account );
+			return (object) compact( 'Id', 'Name' );
+		}
+
+		return false;
+	}
+
+	public static function field_has_multiple_type_accounts( $field ) {
+		return self::has_multiple_type_accounts( $field->id() );
+	}
+
+	public static function has_multiple_type_accounts( $field_id ) {
+		return count( self::get_accounts_of_type( $field_id, false ) ) > 1;
+	}
+
+	public static function get_field_accounts( $field ) {
+		return self::get_accounts_of_type( $field->id(), true );
+	}
+
+	public static function get_accounts_of_type( $field_id, $include_default_option = true ) {
+		$options = get_transient( "zwqoi_{$field_id}s" );
+		if ( empty( $options ) || parent::should_refresh_cache() ) {
+			$options = array();
+
+			try {
+				$accounts = self::fetch_accounts_of_type( $field_id, false );
+
+				if ( ! empty( $accounts ) ) {
+					foreach ( $accounts as $account ) {
+						if ( isset( $account->Name, $account->Id ) ) {
+							$options[ esc_attr( $account->Id . ':' . $account->Name ) ] = $account->Name;
+						}
+					}
+				}
+
+				set_transient( "zwqoi_{$field_id}s", $options, DAY_IN_SECONDS );
+
+			} catch ( \Exception $e ) {}
+		}
+
+		if ( false !== $include_default_option ) {
+			$options = array(
+				'' => __( 'Do not syncronize any products to Quickbooks', 'zwqoi' ),
+			) + $options;
+		}
+
+		return $options;
+	}
+
+	public static function fetch_accounts_of_type( $field_id ) {
+		$accounts = array();
+
+		switch ( $field_id ) {
+
+			case 'inventory_asset_account';
+				$accounts = self::fetch_query(
+					"SELECT * FROM Account WHERE AccountType = 'Other Current Asset' maxresults 300"
+				);
+
+				if ( ! empty( $accounts ) ) {
+					$accounts = wp_filter_object_list( $accounts, array( 'AccountSubType' => 'Inventory' ) );
+				}
+				break;
+
+			case 'income_account';
+				$accounts = self::fetch_query(
+					"SELECT * FROM Account WHERE AccountSubType = 'SalesOfProductIncome' maxresults 300"
+				);
+				break;
+
+			case 'expense_account';
+				$accounts = self::fetch_query(
+					"SELECT * FROM Account WHERE AccountType = 'Cost of Goods Sold' maxresults 300"
+				);
+				break;
+
+		}
+
+		return $accounts;
+	}
+
+	public static function fetch_query( $query ) {
+		$accounts = self::get_service()->query( $query );
+
+		if ( ! is_array( $accounts ) ) {
+			$accounts = array();
+		}
+
+		return $accounts;
 	}
 
 	public static function is_connected( $field ) {
@@ -244,8 +393,31 @@ class Settings extends Base {
 		return $args;
 	}
 
+	public function maybe_only_generate_invoices_for_wholesale_orders( $should_create_invoice, $order_id ) {
+		if ( self::has_wholesale_plugin() && self::get_option( 'disable_non_wholesale_invoices' ) ) {
+			$should_create_invoice = false;
+
+			$order = wc_get_order( $order_id );
+
+			if ( $order ) {
+				$should_create_invoice = !! $order->get_meta( 'is_wholesale_order' );
+			}
+		}
+
+		return $should_create_invoice;
+	}
+
 	public function settings_url() {
 		return admin_url( 'options-general.php?page=' . self::KEY );
+	}
+
+	public static function get_service() {
+		static $service = null;
+		if ( null === $service ) {
+			$service = qbo_connect_ui()->api->get_qb_data_service();
+		}
+
+		return $service;
 	}
 
 	/**

@@ -4,10 +4,6 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-
-
-
-
     "hash": "b64c33052c7954dd56b18249b21a99d3",
     "content-hash": "447501017dd758f799cf2d2796b21ca7",
     "packages": [],
@@ -122,12 +118,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/zao-web/quickbooks-online-connect.git",
-                "reference": "0ee19b69aee1429deb7698f47fb868a05d7409c2"
+                "reference": "6f90451e0c807dc54eb1bb0f12ebfb4c69e8e285"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/0ee19b69aee1429deb7698f47fb868a05d7409c2",
-                "reference": "0ee19b69aee1429deb7698f47fb868a05d7409c2",
+                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/6f90451e0c807dc54eb1bb0f12ebfb4c69e8e285",
+                "reference": "6f90451e0c807dc54eb1bb0f12ebfb4c69e8e285",
                 "shasum": ""
             },
             "require": {
@@ -159,7 +155,7 @@
                 "wordpress",
                 "wp-api"
             ],
-            "time": "2017-08-22 01:33:00"
+            "time": "2017-08-24 00:17:13"
         },
         {
             "name": "zao-web/qbo-connect-ui",

@@ -33,4 +33,9 @@ trait Base_Trait {
 
 		echo $text;
 	}
+
+	public static function should_refresh_cache() {
+		return isset( $_GET['refresh_cache'] ) && $_GET['refresh_cache'];
+	}
+
 }
