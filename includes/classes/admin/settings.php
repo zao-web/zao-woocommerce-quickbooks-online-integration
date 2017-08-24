@@ -39,7 +39,7 @@ class Settings extends Base {
 	 *
 	 * @return bool
 	 */
-	public static function should_show_settings() {
+	public static function is_connected() {
 		return (
 			function_exists( 'qbo_connect_ui' )
 			&& is_object( qbo_connect_ui()->api )
@@ -127,11 +127,11 @@ class Settings extends Base {
 			'menu_title'   => esc_html__( 'QB Woo Integration', 'zwqoi' ),
 			'parent_slug'  => 'options-general.php',
 			'display_cb'   => array( $this, 'options_page_output' ),
-			'show_on_cb'   => array( __CLASS__, 'should_show_settings' ),
+			'show_on_cb'   => array( __CLASS__, 'is_connected' ),
 		) );
 
 		$this->cmb->add_field( array(
-			'show_on_cb' => array( __CLASS__, 'is_connected' ),
+			'show_on_cb' => array( __CLASS__, 'has_company_name' ),
 			'id'         => 'company-title',
 			'name'       => __( 'Connected Company:', 'zwqoi' ),
 			'type'       => 'title',
@@ -329,7 +329,7 @@ class Settings extends Base {
 		return $accounts;
 	}
 
-	public static function is_connected( $field ) {
+	public static function has_company_name( $field ) {
 		$name = Services::company_name();
 
 		if ( ! $name ) {

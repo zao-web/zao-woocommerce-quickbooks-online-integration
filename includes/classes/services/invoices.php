@@ -21,6 +21,10 @@ class Invoices extends Base {
 	}
 
 	public function maybe_invoice( $order_id ) {
+		if ( ! Settings::is_connected() ) {
+			return;
+		}
+
 		if ( ! apply_filters( 'zwqoi_create_invoice_from_order', true, $order_id ) ) {
 			return;
 		}
