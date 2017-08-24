@@ -81,19 +81,19 @@ class Products extends UI_Base {
 	}
 
 	public function validate_qb_object( $qb_object, $force = false ) {
-		$product_name = self::get_product_name( $qb_object, false );
+		$item_name = self::get_item_name( $qb_object, false );
 
 		$product = $this->query_wp_by_qb_id( $qb_object->Id );
 
 		if ( ! empty( $product ) ) {
 			return $this->found_product_error(
 				__( 'A product has already been mapped to this QuickBooks Product: %s', 'zwqoi' ),
-				$product_name,
+				$item_name,
 				$product
 			);
 		}
 
-		$slug = sanitize_title( $product_name );
+		$slug = sanitize_title( $item_name );
 
 		if ( ! $force ) {
 			$product = get_page_by_path( $slug, OBJECT, 'product' );
@@ -123,40 +123,40 @@ class Products extends UI_Base {
 			);
 		}
 
-		$product = $qb_id instanceof API\Data\IPPItem ? $qb_id : $this->get_by_id( $qb_id );
-		if ( is_wp_error( $product ) ) {
-			return $product;
+		$item = $qb_id instanceof API\Data\IPPItem ? $qb_id : $this->get_by_id( $qb_id );
+		if ( is_wp_error( $item ) ) {
+			return $item;
 		}
 
-		$product_name = self::get_product_name( $product, false );
+		$item_name = self::get_item_name( $item, false );
 
 		$props = array(
-			'name'         => wc_clean( $product_name ),
-			'slug'         => wc_clean( $product_name ),
-			'sku'          => wc_clean( self::get_value_from_object( $product, 'Sku', '' ) ),
-			'description'  => wc_clean( self::get_value_from_object( $product, 'Description', '' ) ),
-			'status'       => ! empty( $product->Active ) ? 'publish' : 'pending',
-			'tax_status'   => ! empty( $product->Taxable ) ? 'taxable' : 'pending',
-			'price'        => wc_clean( self::get_value_from_object( $product, 'UnitPrice', '' ) ),
-			'manage_stock' => !! $product->TrackQtyOnHand,
+			'name'         => wc_clean( $item_name ),
+			'slug'         => wc_clean( $item_name ),
+			'sku'          => wc_clean( self::get_value_from_object( $item, 'Sku', '' ) ),
+			'description'  => wc_clean( self::get_value_from_object( $item, 'Description', '' ) ),
+			'status'       => ! empty( $item->Active ) ? 'publish' : 'pending',
+			'tax_status'   => ! empty( $item->Taxable ) ? 'taxable' : 'pending',
+			'price'        => wc_clean( self::get_value_from_object( $item, 'UnitPrice', '' ) ),
+			'manage_stock' => !! $item->TrackQtyOnHand,
 		);
 
 		$props['regular_price'] = $props['price'];
 
 		$wc_product->set_props( $props );
 
-		if ( $props['manage_stock'] && isset( $product->QtyOnHand ) ) {
-			$wc_product->set_stock_quantity( absint( $product->QtyOnHand ) );
+		if ( $props['manage_stock'] && isset( $item->QtyOnHand ) ) {
+			$wc_product->set_stock_quantity( absint( $item->QtyOnHand ) );
 
-			$this->set_product_meta( $wc_product, $product, array(
+			$this->set_product_meta( $wc_product, $item, array(
 				'QtyOnPurchaseOrder',
 				'QtyOnSalesOrder',
 			) );
 		}
 
-		$this->set_product_meta( $wc_product, $product, $this->sync_meta_keys );
+		$this->set_product_meta( $wc_product, $item, $this->sync_meta_keys );
 
-		$this->update_connected_qb_id( $wc_product, $product->Id );
+		$this->update_connected_qb_id( $wc_product, $item->Id );
 
 		add_action( 'woocommerce_new_product', array( $this, 'add_custom_new_product_hook' ) );
 		add_action( 'woocommerce_update_product', array( $this, 'add_custom_update_product_hook' ) );
@@ -166,7 +166,7 @@ class Products extends UI_Base {
 		if ( ! $updated ) {
 			$updated = new WP_Error(
 				'zwqoi_product_get_by_id_error',
-				sprintf( __( 'There was an error importing/updating this product: %s', 'zwqoi' ), $product_name )
+				sprintf( __( 'There was an error importing/updating this product: %s', 'zwqoi' ), $item_name )
 			);
 		}
 
@@ -191,26 +191,80 @@ class Products extends UI_Base {
 		do_action( 'zwqoi_update_product_from_quickbooks', $product_id, $this );
 	}
 
-	public function create_qb_object_from_wp_object( $object ) {
-		if ( $object instanceof WC_Product ) {
-			$product = $object;
-		} else {
+	public function create_qb_object_from_wp_object( $wp_object ) {
+		$product = $this->get_product( $wp_object );
 
-			$id = is_numeric( $object ) ? $object : $this->get_wp_id( $object );
-			if ( ! $id ) {
-				return false;
-			}
-
-			$product = wc_get_product( $id );
-			if ( ! $product ) {
-				return false;
-			}
+		if ( ! $product ) {
+			return false;
 		}
 
+		$args = $this->qb_object_args( $product );
+
+		if ( is_wp_error( $args ) ) {
+			return $args;
+		}
+
+		$result = $this->create( $args );
+		$error  = $this->get_error();
+
+		if ( $error ) {
+			return new WP_Error(
+				'zwqoi_product_create_error',
+				sprintf( __( 'There was an error creating a QuickBooks Item for this product: %d', 'zwqoi' ), $this->get_wp_id( $product ) ),
+				$error
+			);
+		}
+
+		if ( isset( $results[1]->Id ) ) {
+			$this->update_connected_qb_id( $product, $results[1]->Id )->save();
+		}
+
+		return $result[1];
+	}
+
+	public function update_qb_object_with_wp_object( $qb_object, $wp_object ) {
+		$item    = $qb_object instanceof API\Data\IPPItem ? $qb_object : $this->get_by_id( $qb_object );
+		$product = $this->get_product( $wp_object );
+
+		if ( ! $product || ! $item ) {
+			return false;
+		}
+
+		$args = $this->qb_object_args( $product );
+
+		if ( is_wp_error( $args ) ) {
+			return $args;
+		}
+
+		$args['sparse'] = true;
+
+		$result = $this->update( $item, $args );
+		$error  = $this->get_error();
+
+		if ( $error ) {
+			return new WP_Error(
+				'zwqoi_product_update_error',
+				sprintf( __( 'There was an error updating a QuickBooks Item for this product: %d', 'zwqoi' ), $this->get_wp_id( $product ) ),
+				$error
+			);
+		}
+
+		if ( isset( $results[1]->Id ) ) {
+			$this->update_connected_qb_id( $product, $results[1]->Id )->save();
+		}
+
+		return $result[1];
+	}
+
+	protected function qb_object_args( $wp_object ) {
+		$product  = $this->get_wp_object( $wp_object );
 		$accounts = Settings::get_accounts();
 
 		if ( ! $accounts ) {
-			return false;
+			return new WP_Error(
+				'zwqoi_product_error_missing_accounts',
+				sprintf( __( 'There was an error creating a QuickBooks Item for this product: %d. You need to setup the inventory/expense/income accounts in the integration settings.', 'zwqoi' ), $this->get_wp_id( $product ) )
+			);
 		}
 
 		$args = array(
@@ -239,23 +293,7 @@ class Products extends UI_Base {
 			),
 		);
 
-		$result = $this->create( $args );
-		$error = $this->get_error();
-		error_log( __METHOD__ . ' : '. print_r( get_defined_vars(), true ) );
-
-		if ( $error ) {
-			return new WP_Error(
-				'zwqoi_product_create_error',
-				sprintf( __( 'There was an error creating a QuickBooks Item for this product: %d', 'zwqoi' ), $product->get_id() ),
-				$error
-			);
-		}
-
-		if ( isset( $results[1]->Id ) ) {
-			$this->update_connected_qb_id( $product, $results[1]->Id )->save();
-		}
-
-		return $result[1];
+		return $args;
 	}
 
 	public function set_product_meta( $wc_product, $product, $meta_keys ) {
@@ -403,18 +441,18 @@ class Products extends UI_Base {
 	}
 
 	public function get_qb_object_name( $qb_object ) {
-		return self::get_product_name( $qb_object );
+		return self::get_item_name( $qb_object );
 	}
 
-	public static function get_product_name( $product, $with_sku = true ) {
-		$name = self::get_value_from_object( $product, array(
+	public static function get_item_name( $item, $with_sku = true ) {
+		$name = self::get_value_from_object( $item, array(
 			'Name',
 			'FullyQualifiedName',
 			'Id',
 		) );
 
 		if ( $with_sku ) {
-			$sku = self::get_value_from_object( $product, array(
+			$sku = self::get_value_from_object( $item, array(
 				'Sku',
 			) );
 
@@ -438,6 +476,10 @@ class Products extends UI_Base {
 		$url = parent::import_url( $qb_id, $force );
 
 		return apply_filters( 'zwqoi_import_product_url', $url, $qb_id );
+	}
+
+	public function update( $object, $args ) {
+		return $this->update_product( $object, $args );
 	}
 
 	public function create( $args ) {

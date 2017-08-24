@@ -24,8 +24,10 @@ abstract class Base extends Service {
 	abstract public function get_wp_id( $object );
 	abstract public function get_wp_name( $object );
 	abstract public function create( $args );
+	abstract public function update( $object, $args );
+	abstract protected function qb_object_args( $wp_object );
 	abstract public function update_connected_qb_id( $wp_id, $meta_value );
-	abstract public function create_qb_object_from_wp_object( $object );
+	abstract public function create_qb_object_from_wp_object( $wp_object );
 
 	public static function set_api( $api ) {
 		self::$api = $api;
@@ -118,6 +120,16 @@ abstract class Base extends Service {
 			$msg .= '<br>' . sprintf( __( 'The Status code is: %s', 'zwqoi' ), $error->getHttpStatusCode() ) . "\n";
 			$msg .= '<br>' . sprintf( __( 'The Helper message is: %s', 'zwqoi' ), $error->getOAuthHelperError() ) . "\n";
 			$msg .= '<br>' . sprintf( __( 'The Response message is: %s', 'zwqoi' ), $error->getResponseBody() ) . "\n";
+
+			$intuit_errors = array(
+				__( 'Intuit Error Type', 'zwqoi' )    => $error->getIntuitErrorType(),
+				__( 'Intuit Error Code', 'zwqoi' )    => $error->getIntuitErrorCode(),
+				__( 'Intuit Error Message', 'zwqoi' ) => $error->getIntuitErrorMessage(),
+				__( 'Intuit Error Detail', 'zwqoi' )  => $error->getIntuitErrorDetail(),
+			);
+			foreach ( array_filter( $intuit_errors ) as $label => $error_msg ) {
+				$msg .= '<br>' . sprintf( __( 'The %s is: %s', 'zwqoi' ), $label, $error_msg ) . "\n";
+			}
 		}
 
 		return $msg;

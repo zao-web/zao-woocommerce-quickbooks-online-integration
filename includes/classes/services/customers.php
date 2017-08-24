@@ -106,15 +106,64 @@ class Customers extends UI_Base {
 		return wp_insert_user( $userdata );
 	}
 
-	public function create_qb_object_from_wp_object( $object ) {
-		$user = $this->get_wp_object( $object );
+	public function create_qb_object_from_wp_object( $wp_object ) {
+		$user = $this->get_wp_object( $wp_object );
 		if ( ! $user ) {
 			return false;
 		}
 
-		$user_id = $this->get_wp_id( $user );
+		$args    = $this->qb_object_args( $user );
+		$results = $this->create( $args );
+		$error   = $this->get_error();
 
-		$customer = new \WC_Customer( $user_id );
+		if ( $error ) {
+			return new WP_Error(
+				'zwqoi_customer_create_error',
+				sprintf( __( 'There was an error creating a customer for this user: %d', 'zwqoi' ), $this->get_wp_id( $user ) ),
+				$error
+			);
+		}
+
+		if ( isset( $results[1]->Id ) ) {
+			$this->update_connected_qb_id( $user, $results[1]->Id );
+		}
+
+		return $results[1];
+	}
+
+	public function update_qb_object_with_wp_object( $qb_object, $wp_object ) {
+		$customer = $qb_object instanceof API\Data\IPPCustomer ? $qb_object : $this->get_by_id( $qb_object );
+		$user     = $this->get_wp_object( $wp_object );
+
+		if ( ! $user || ! $customer ) {
+			return false;
+		}
+
+		$args = $this->qb_object_args( $user );
+
+		$args['sparse'] = true;
+
+		$result = $this->update( $customer, $args );
+		$error  = $this->get_error();
+
+		if ( $error ) {
+			return new WP_Error(
+				'zwqoi_customer_update_error',
+				sprintf( __( 'There was an error updating a QuickBooks Customer for this user: %d', 'zwqoi' ), $this->get_wp_id( $user ) ),
+				$error
+			);
+		}
+
+		if ( isset( $results[1]->Id ) ) {
+			$this->update_connected_qb_id( $user, $results[1]->Id );
+		}
+
+		return $result[1];
+	}
+
+	protected function qb_object_args( $wp_object ) {
+		$user     = $this->get_wp_object( $wp_object );
+		$customer = new \WC_Customer( $this->get_wp_id( $user ) );
 
 		$args = array(
 			'Notes'       =>  __( 'Created via "Zao WooCommerce QuickBooks Online Integration" plugin.', 'zwqoi' ),
@@ -174,23 +223,7 @@ class Customers extends UI_Base {
 			$args['PrimaryPhone']['FreeFormNumber'] = $phone;
 		}
 
-		$results = $this->create( $args );
-
-		$error = $this->get_error();
-
-		if ( $error ) {
-			return new WP_Error(
-				'zwqoi_customer_create_error',
-				sprintf( __( 'There was an error creating a customer for this user: %d', 'zwqoi' ), $user_id ),
-				$error
-			);
-		}
-
-		if ( isset( $results[1]->Id ) ) {
-			$this->update_connected_qb_id( $user_id, $results[1]->Id );
-		}
-
-		return $results[1];
+		return $args;
 	}
 
 	public function update_wp_object_with_qb_object( $wp_id, $qb_id ) {
@@ -556,6 +589,10 @@ class Customers extends UI_Base {
 		}
 
 		return $existing;
+	}
+
+	public function update( $object, $args ) {
+		return $this->update_customer( $object, $args );
 	}
 
 	/**

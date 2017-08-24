@@ -1,7 +1,9 @@
 <?php
 namespace Zao\WC_QBO_Integration\Services;
 
-use WC_Order, WC_Customer, WP_Post, WP_Error, WP_Query, Zao\WC_QBO_Integration\Admin\Settings;
+use WC_Order, WC_Customer, WP_Post, WP_Error, WP_Query;
+use Zao\WC_QBO_Integration\Admin\Settings;
+use QuickBooksOnline\API;
 
 class Invoices extends Base {
 
@@ -14,51 +16,30 @@ class Invoices extends Base {
 	}
 
 	public function init() {
-		// add_action( 'woocommerce_new_order', array( $this, 'maybe_invoice' ), 10, 2 );
-
-		// add_action( 'woocommerce_update_order', array( $this, 'maybe_invoice' ), 10, 2 );
+		add_action( 'woocommerce_new_order', array( $this, 'maybe_invoice' ), 10, 2 );
+		add_action( 'woocommerce_update_order', array( $this, 'maybe_invoice' ), 10, 2 );
 	}
 
 	public function maybe_invoice( $order_id ) {
-
 		if ( ! apply_filters( 'zwqoi_create_invoice_from_order', true, $order_id ) ) {
 			return;
 		}
 
-		$order = $this->get_wp_object( $order_id );
+		$order      = $this->get_wp_object( $order_id );
+		$invoice_id = $this->get_connected_qb_id( $order_id );
+		$invoice    = null;
 
-		$has_invoice_id = $this->get_connected_qb_id( $order_id );
-		$customer_id    = $this->get_order_customer_id( $order->get_user_id() );
-		if ( is_wp_error( $customer_id ) ) {
-			return;
+		if ( $invoice_id ) {
+			$invoice = $this->get_by_id( $invoice_id );
 		}
 
-		if ( $has_invoice_id ) {
-			$invoice = $this->get_by_id( $has_invoice_id );
-			if ( ! $invoice ) {
-				$has_invoice_id = false;
-			}
-		}
-
-		wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(), true ) .'</xmp>' );
-		if ( ! $has_invoice_id ) {
-			$result = $this->create_qb_object_from_wp_object( $order, $customer_id );
-		} else {
-
-			// $has_invoice_id
-			$result = $this->update_invoice( $invoice_obj, array(
-				'sparse' => true,
-				'Deposit' => 100000,
-				'DocNumber' => "12223322"
-			) );
-		}
-
-
+		return $invoice
+			? $this->update_qb_object_with_wp_object( $invoice, $order )
+			: $this->create_qb_object_from_wp_object( $order );
 	}
 
 	public function get_order_customer_id( $user_id ) {
 		$customer_id = $this->customers->get_connected_qb_id( $user_id );
-wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(), true ) .'</xmp>' );
 		if ( ! $customer_id && apply_filters( 'zwqoi_create_customers_from_invoice_user', true ) ) {
 			$customer = $this->customers->create_qb_object_from_wp_object( $user_id );
 
@@ -70,8 +51,83 @@ wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(
 		return $customer_id;
 	}
 
-	public function create_qb_object_from_wp_object( $object ) {
-		$order = $object;
+	public function create_qb_object_from_wp_object( $wp_object ) {
+		$order = $this->get_wp_object( $wp_object );
+		if ( ! $order ) {
+			return false;
+		}
+
+		$args = $this->qb_object_args( $order );
+		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
+
+		if ( is_wp_error( $args ) ) {
+			return $args;
+		}
+
+		$result = $this->create( $args );
+		$error  = $this->get_error();
+
+		if ( isset( $result[1]->Id ) ) {
+			$this->update_connected_qb_id( $order, $result[1]->Id );
+		}
+
+		if ( $error ) {
+			$result = new WP_Error(
+				'zwqoi_invoice_create_error',
+				sprintf( __( 'There was an error creating a QuickBooks Invoice for this order: %d', 'zwqoi' ), $order->get_id() ),
+				$error
+			);
+
+			// @dev
+			$result = self::fault_handler_error_output( $error );
+		} else {
+			$result = $result[1];
+		}
+
+
+		// wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( compact( 'args', 'result' ), true ) .'</xmp>' );
+		return $result;
+	}
+
+	public function update_qb_object_with_wp_object( $qb_object, $wp_object ) {
+		$invoice = $qb_object instanceof API\Data\IPPInvoice ? $qb_object : $this->get_by_id( $qb_object );
+		$order   = $this->get_wp_object( $wp_object );
+
+		if ( ! $order || ! $invoice ) {
+			return false;
+		}
+
+		$args = $this->qb_object_args( $order );
+		// echo '<xmp>'. __LINE__ .') $invoice: '. print_r( $invoice, true ) .'</xmp>';
+		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
+
+		if ( is_wp_error( $args ) ) {
+			return $args;
+		}
+
+		$args['sparse'] = true;
+
+		$result = $this->update( $invoice, $args );
+		$error  = $this->get_error();
+
+		if ( $error ) {
+			return new WP_Error(
+				'zwqoi_invoice_update_error',
+				sprintf( __( 'There was an error updating a QuickBooks Invoice for this order: %d', 'zwqoi' ), $this->get_wp_id( $order ) ),
+				$error
+			);
+		}
+
+		if ( isset( $results[1]->Id ) ) {
+			$this->update_connected_qb_id( $order, $results[1]->Id );
+		}
+
+		return $result[1];
+	}
+
+	protected function qb_object_args( $wp_object ) {
+		$order = $this->get_wp_object( $wp_object );
+
 		$qb_customer_id = $this->get_order_customer_id( $order->get_user_id() );
 		if ( is_wp_error( $qb_customer_id ) ) {
 			return false;
@@ -82,12 +138,12 @@ wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(
 
 		$args = array(
 			'CustomerRef' => array(
-				'value' => $customer->Id,
+				'value' => $qb_customer_id,
 			),
 			'CustomField' =>  array(
 				array(
 					'DefinitionId' => '1',
-					'Name'         => 'WordPress Invoice ID',
+					'Name'         => __( 'WordPress Order ID', 'zwqoi' ),
 					'Type'         => 'StringType',
 					'StringValue'  => $order->get_id(),
 				)
@@ -96,10 +152,10 @@ wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(
 		);
 
 		$line_items     = $order->get_items( 'line_item' );
-		$tax_lines      = $order->get_items( 'tax' );
-		$shipping_lines = $order->get_items( 'shipping' );
-		$fee_lines      = $order->get_items( 'fee' );
-		$coupon_lines   = $order->get_items( 'coupon' );
+		// $tax_lines      = $order->get_items( 'tax' );
+		// $shipping_lines = $order->get_items( 'shipping' );
+		// $fee_lines      = $order->get_items( 'fee' );
+		// $coupon_lines   = $order->get_items( 'coupon' );
 
 		if ( ! empty( $line_items ) ) {
 			foreach ( (array) $line_items as $item ) {
@@ -107,17 +163,18 @@ wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(
 
 				$line = array(
 					'Description'         => $item->get_name(),
-					'Amount'              => $item->get_subtotal(),
+					'Amount'              => $item->get_total(),
 					'DetailType'          => 'SalesItemLineDetail',
 					'SalesItemLineDetail' => array(
 						'UnitPrice' => $product->get_price(),
-						'Qty' => max( 1, $item->get_quantity() ),
+						'Qty'       => max( 1, $item->get_quantity() ),
 					),
 				);
 
 				$item_id = $this->products->get_connected_qb_id( $product );
 
-				if ( ! $item_id && Settings::get_option( 'item_account' ) ) {
+				// wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(), true ) .'</xmp>' );
+				if ( ! $item_id && apply_filters( 'zwqoi_create_items_from_invoice_products', true ) ) {
 					$result = $this->products->create_qb_object_from_wp_object( $product );
 					$item_id = isset( $result->Id ) ? $result->Id : 0;
 				}
@@ -129,14 +186,14 @@ wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(
 					);
 				}
 
-				$query = $wpdb->prepare(
-					$this->search_query_format( $search_type ),
-					$search_term
-				);
+				// $query = $wpdb->prepare(
+				// 	$this->search_query_format( $search_type ),
+				// 	$search_term
+				// );
 
-				$results = $this->query( $query );
+				// $results = $this->query( $query );
 
-				$error = $this->get_error();
+				// $error = $this->get_error();
 
 				$args['Line'][] = $line;
 			}
@@ -146,23 +203,7 @@ wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(
 			$args['DocNumber'] = $order->get_id();
 		// }
 
-		$result = $this->create( $args );
-
-		$error = $this->get_error();
-
-		if ( $error ) {
-			return new WP_Error(
-				'zwqoi_invoice_create_error',
-				sprintf( __( 'There was an error creating a QuickBooks Invoice for this order: %d', 'zwqoi' ), $order->get_id() ),
-				$error
-			);
-		}
-
-		if ( isset( $results[1]->Id ) ) {
-			$this->update_connected_qb_id( $product, $results[1]->Id )->save();
-		}
-
-		return $result[1];
+		return $args;
 	}
 
 	public function update_connected_qb_id( $wp_id, $meta_value ) {
@@ -233,6 +274,10 @@ wp_die( '<xmp>'. __FUNCTION__ . ':' . __LINE__ .') '. print_r( get_defined_vars(
 		}
 
 		return get_post_meta( $this->get_wp_id( $order ), $this->meta_key, true );
+	}
+
+	public function update( $object, $args ) {
+		return $this->update_invoice( $object, $args );
 	}
 
 	public function create( $args ) {
