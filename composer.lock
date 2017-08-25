@@ -118,12 +118,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/zao-web/quickbooks-online-connect.git",
-                "reference": "6f90451e0c807dc54eb1bb0f12ebfb4c69e8e285"
+                "reference": "56c57fea4c7059d5ca57b172b35c3c956828da70"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/6f90451e0c807dc54eb1bb0f12ebfb4c69e8e285",
-                "reference": "6f90451e0c807dc54eb1bb0f12ebfb4c69e8e285",
+                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/56c57fea4c7059d5ca57b172b35c3c956828da70",
+                "reference": "56c57fea4c7059d5ca57b172b35c3c956828da70",
                 "shasum": ""
             },
             "require": {
@@ -155,7 +155,7 @@
                 "wordpress",
                 "wp-api"
             ],
-            "time": "2017-08-24 00:17:13"
+            "time": "2017-08-25 19:11:09"
         },
         {
             "name": "zao-web/qbo-connect-ui",
@@ -163,12 +163,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/zao-web/quickbooks-online-connect-ui.git",
-                "reference": "34f158cd595490a5fcd1ee81476e608c17073eb5"
+                "reference": "cfe89b4eb074694edafcdb481f7c9334b1078648"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect-ui/zipball/34f158cd595490a5fcd1ee81476e608c17073eb5",
-                "reference": "34f158cd595490a5fcd1ee81476e608c17073eb5",
+                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect-ui/zipball/cfe89b4eb074694edafcdb481f7c9334b1078648",
+                "reference": "cfe89b4eb074694edafcdb481f7c9334b1078648",
                 "shasum": ""
             },
             "require": {
@@ -201,7 +201,7 @@
                 "wordpress",
                 "wp-api"
             ],
-            "time": "2017-08-23 18:39:59"
+            "time": "2017-08-25 19:30:13"
         }
     ],
     "aliases": [],
