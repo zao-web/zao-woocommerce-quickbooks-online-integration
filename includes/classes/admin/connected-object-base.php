@@ -16,14 +16,12 @@ abstract class Connected_Object_Base extends Base {
 	}
 
 	public function init() {
-		if ( is_admin() && self::_param( $this->id_query_var ) ) {
-			if ( wp_verify_nonce( self::_param( $this->disconnect_query_var ), get_class( $this ) ) ) {
-				add_action( 'all_admin_notices', array( $this, 'disconnect_quickbooks_notice' ) );
-			}
+		if ( $this->should_disconnect() ) {
+			add_action( 'all_admin_notices', array( $this, 'disconnect_quickbooks_notice' ) );
+		}
 
-			if ( self::_param_is( 'qb_updated', '1' ) ) {
-				add_action( 'all_admin_notices', array( $this, 'updated_notice' ) );
-			}
+		if ( $this->was_updated() ) {
+			add_action( 'all_admin_notices', array( $this, 'updated_notice' ) );
 		}
 
 		add_action( 'zwqoi_customer_search_page', array( $this, 'maybe_redirect_back' ) );
@@ -171,6 +169,22 @@ abstract class Connected_Object_Base extends Base {
 	public function connect_qb_url( $query_args = array() ) {
 		$query_args[ $this->connect_query_var ] = $this->service->get_wp_id( $this->wp_object );
 		return wp_nonce_url( $this->service->settings_url( $query_args ), get_class( $this ), $this->connect_nonce_query_var );
+	}
+
+	public function should_disconnect() {
+		return (
+			is_admin()
+			&& self::_param( $this->id_query_var )
+			&& wp_verify_nonce( self::_param( $this->disconnect_query_var ), get_class( $this ) )
+		);
+	}
+
+	public function was_updated() {
+		return (
+			is_admin()
+			&& self::_param( $this->id_query_var )
+			&& self::_param_is( 'qb_updated', '1' )
+		);
 	}
 
 }
