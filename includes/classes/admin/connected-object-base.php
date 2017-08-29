@@ -1,6 +1,8 @@
 <?php
 namespace Zao\WC_QBO_Integration\Admin;
 use Zao\WC_QBO_Integration\Base, Zao\WC_QBO_Integration\Services\UI_Base;
+use Zao\WC_QBO_Integration\Services\Base as Service_Base;
+
 
 abstract class Connected_Object_Base extends Base {
 
@@ -11,7 +13,7 @@ abstract class Connected_Object_Base extends Base {
 	protected $connect_nonce_query_var = '';
 	protected $id_query_var = '';
 
-	public function __construct( UI_Base $service ) {
+	public function __construct( Service_Base $service ) {
 		$this->service = $service;
 	}
 
@@ -83,16 +85,27 @@ abstract class Connected_Object_Base extends Base {
 			return '<p>' . sprintf( __( 'There was an issue fetching the QuickBooks object (%d) from the QuickBooks API.', 'zwqoi' ), $qb_id ) . '</p>';
 		}
 
-		$update_button = $this->service->update_from_qb_button(
-			$this->service->get_wp_id( $this->wp_object ),
-			$qb_object->Id,
-			array( 'redirect' => urlencode( add_query_arg( 'qb_updated', 1 ) ) )
-		);
-
 		$disconnect_button = $this->disconnect_quickbooks_wp_button();
+		$output = '<p><em>' . $this->service->get_qb_object_name( $qb_object ) . '</em></p>';
+		$output .= '<p>';
 
-		return '<p><em>' . $this->service->get_qb_object_name( $qb_object ) . '</em></p>' .
-		'<p>' . $update_button . '&nbsp;&nbsp;' . $disconnect_button . '</p>';
+		if ( $this->service instanceof UI_Base ) {
+			$update_button = $this->service->update_from_qb_button(
+				$this->service->get_wp_id( $this->wp_object ),
+				$qb_object->Id,
+				array( 'redirect' => urlencode( add_query_arg( 'qb_updated', 1 ) ) )
+			);
+
+			$output .= $update_button . '&nbsp;&nbsp;' . $disconnect_button;
+
+		} else {
+
+			$output .= $disconnect_button;
+		}
+
+		$output .= '</p>';
+
+		return $output;
 	}
 
 	public function maybe_redirect_back() {

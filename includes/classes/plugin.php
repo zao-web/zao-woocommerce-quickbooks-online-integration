@@ -9,6 +9,7 @@ class Plugin extends Base {
 	protected $invoices;
 	protected $users;
 	protected $wc_products;
+	protected $wc_orders;
 	protected $settings;
 
 	/**
@@ -30,6 +31,7 @@ class Plugin extends Base {
 		$this->invoices = new Services\Invoices( $this->customers, $this->products );
 		$this->users = new Admin\Users( $this->customers );
 		$this->wc_products = new Admin\Products( $this->products );
+		$this->wc_orders = new Admin\Orders( $this->invoices );
 		$this->settings = new Admin\Settings();
 	}
 
@@ -40,6 +42,7 @@ class Plugin extends Base {
 		$this->invoices->init();
 		$this->users->init();
 		$this->wc_products->init();
+		$this->wc_orders->init();
 		$this->settings->init();
 	}
 
