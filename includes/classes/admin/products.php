@@ -16,7 +16,7 @@ class Products extends Connected_Object_Base {
 		}
 	}
 
-	public function register_metabox( $args ) {
+	public function register_metabox() {
 		$post = self::_param( $this->id_query_var );
 		$post = $post ? get_post( $post ) : false;
 
