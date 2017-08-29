@@ -28,6 +28,7 @@ abstract class Base extends Service {
 	abstract protected function qb_object_args( $wp_object );
 	abstract public function update_connected_qb_id( $wp_id, $meta_value );
 	abstract public function create_qb_object_from_wp_object( $wp_object );
+	abstract public function get_qb_object_name( $qb_object );
 
 	public static function set_api( $api ) {
 		self::$api = $api;

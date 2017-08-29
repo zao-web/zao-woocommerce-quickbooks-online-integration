@@ -322,6 +322,13 @@ class Invoices extends Base {
 		return get_post_meta( $this->get_wp_id( $order ), $this->meta_key, true );
 	}
 
+	public function get_qb_object_name( $qb_object ) {
+		return sprintf( __( 'Invoice #%d', 'zwqoi' ), self::get_value_from_object( $qb_object, array(
+			'DocNumber',
+			'Id',
+		) ) );
+	}
+
 	public function update( $object, $args ) {
 		return $this->update_invoice( $object, $args );
 	}
