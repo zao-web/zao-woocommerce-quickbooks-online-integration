@@ -37,6 +37,7 @@ abstract class Connected_Object_Base extends Base {
 	abstract public function text_redirect_back();
 	abstract public function text_search_to_connect();
 	abstract public function text_disconnect_qb_object();
+	abstract public function text_disconnect_qb_object_confirm();
 	abstract public function text_connect_qb_object();
 	abstract public function text_connect_qb_object_confirm();
 
@@ -156,7 +157,7 @@ abstract class Connected_Object_Base extends Base {
 	 */
 
 	public function disconnect_quickbooks_wp_button() {
-		return '<a class="button-secondary button-link-delete disconnect-qb-customer" href="' . esc_url( $this->disconnect_qb_from_wp_object_url() ) . '">' . $this->get_text( 'disconnect_qb_object' ) . '</a>';
+		return '<a class="button-secondary button-link-delete disconnect-qb-customer" onclick="return confirm(\'' . esc_attr( $this->get_text( 'disconnect_qb_object_confirm' ) ) . '\')" href="' . esc_url( $this->disconnect_qb_from_wp_object_url() ) . '">' . $this->get_text( 'disconnect_qb_object' ) . '</a>';
 	}
 
 	public function disconnect_qb_from_wp_object_url() {

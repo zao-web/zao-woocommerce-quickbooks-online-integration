@@ -43,6 +43,10 @@ class Products extends Connected_Object_Base {
 		return __( 'Disconnect QuickBooks Product', 'zwqoi' );
 	}
 
+	public function text_disconnect_qb_object_confirm() {
+		return __( 'Are you sure you want to disconnect the QuickBooks Product?', 'zwqoi' );
+	}
+
 	public function text_connect_qb_object() {
 		return __( 'Connect QuickBooks Product', 'zwqoi' );
 	}
