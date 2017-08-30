@@ -13,6 +13,18 @@ Integrates QuickBooks Online with WooCommerce
 
 ## Description
 
+## What this plugin does
+
+Once [setup](https://github.com/zao-web/zao-woocommerce-quickbooks-online-integration/wiki#quickbooks-woo-integration-settings), this plugin provides functionality for integrating with your QuickBooks Online company. Some of those features include:
+
+* Search for and import a Product (or service) from QuickBooks.
+* Update your connected product with data from QuickBooks, or disconnect a product.
+* Search for and import a Customer from QuickBooks.
+* Update your connected user with data from QuickBooks, or disconnect a customer.
+* Generates QuickBooks invoices from orders.
+* Provides [Settings for Zao WooCommerce Wholesale](https://github.com/zao-web/zao-woocommerce-quickbooks-online-integration/wiki#zao-woocommerce-wholesale-settings) plugin integration.
+
+For more information and documentation, [visit the wiki](https://github.com/zao-web/zao-woocommerce-quickbooks-online-integration/wiki).
 
 ## Installation
 
