@@ -22,7 +22,7 @@ Once [setup](https://github.com/zao-web/zao-woocommerce-quickbooks-online-integr
 * Search for and import a Customer from QuickBooks.
 * Update your connected user with data from QuickBooks, or disconnect a customer.
 * Generates QuickBooks invoices from orders.
-* Provides [Settings for Zao WooCommerce Wholesale](https://github.com/zao-web/zao-woocommerce-quickbooks-online-integration/wiki#zao-woocommerce-wholesale-settings) plugin integration.
+* Provides settings for [Zao WooCommerce Wholesale](https://github.com/zao-web/zao-woocommerce-wholesale) plugin integration.
 
 For more information and documentation, [visit the wiki](https://github.com/zao-web/zao-woocommerce-quickbooks-online-integration/wiki).
 
