@@ -136,7 +136,7 @@ class Products extends UI_Base {
 			'sku'          => wc_clean( self::get_value_from_object( $item, 'Sku', '' ) ),
 			'description'  => wc_clean( self::get_value_from_object( $item, 'Description', '' ) ),
 			'status'       => ! empty( $item->Active ) ? 'publish' : 'pending',
-			'tax_status'   => ! empty( $item->Taxable ) ? 'taxable' : 'pending',
+			'tax_status'   => ! empty( $item->Taxable ) ? 'taxable' : 'none',
 			'price'        => wc_clean( self::get_value_from_object( $item, 'UnitPrice', '' ) ),
 			'manage_stock' => !! $item->TrackQtyOnHand,
 		);
