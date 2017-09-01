@@ -37,6 +37,10 @@ class Invoices extends Base {
 			$invoice = $this->get_by_id( $invoice_id );
 		}
 
+		if ( is_wp_error( $invoice ) ) {
+			return error_log( __FUNCTION__ . ':' . __LINE__ .') Invoice error: '. print_r( $invoice, true ) );
+		}
+
 		return $invoice
 			? $this->update_qb_object_with_wp_object( $invoice, $order )
 			: $this->create_qb_object_from_wp_object( $order );
@@ -145,48 +149,76 @@ class Invoices extends Base {
 			'CustomerRef' => array(
 				'value' => $qb_customer_id,
 			),
+
+			/*
+			 * Individual line items of a transaction. Valid Line types include:
+			 *   * Sales item line (DetailType: SalesItemLineDetailfor)
+			 *   * Group item line  (DetailType: GroupLineDetailfor)
+			 *   * Description only (also used for inline Subtotal lines) (DetailType: DescriptionOnlyfor)
+			 *   * Discount line (DetailType: DiscountLineDetailfor)
+			 *   * Subtotal Line (used for the overall transaction) (DetailType: SubtotalLineDetailfor)
+			 */
 			'Line' => array(),
 		);
 
 		$line_items = $order->get_items( 'line_item' );
 
-		// TODO: Add the following items to the invoice.
-		// $tax_lines      = $order->get_items( 'tax' );
-		// $shipping_lines = $order->get_items( 'shipping' );
-		// $fee_lines      = $order->get_items( 'fee' );
-		// $coupon_lines   = $order->get_items( 'coupon' );
+		// Fees. Should come before shipping.
+		$fee_lines = $order->get_items( 'fee' );
 
+		// Concatenate shipping item names and save to shipping name
+		// and add values to add as line item with SHIPPING_ITEM_ID itemref
+		$shipping_lines = $order->get_items( 'shipping' );
+
+		// Add values to add as line item with DetailType DiscountLineDetail
+		$coupon_lines = $order->get_items( 'coupon' );
+
+		// TODO: implement taxes someday
+		// $tax_lines = $order->get_items( 'tax' );
+
+		$linenums = 0;
 		if ( ! empty( $line_items ) ) {
 			foreach ( (array) $line_items as $item ) {
-				$product = $item->get_product();
-
-				$line = array(
-					'Description'         => $item->get_name(),
-					'Amount'              => number_format( $item->get_total(), 2 ),
-					'DetailType'          => 'SalesItemLineDetail',
-					'SalesItemLineDetail' => array(
-						'UnitPrice' => number_format( $product->get_price(), 2 ),
-						'Qty'       => max( 1, $item->get_quantity() ),
-					),
-				);
-
-				$item_id = $this->products->get_connected_qb_id( $product );
-
-				if ( ! $item_id && apply_filters( 'zwqoi_create_items_from_invoice_products', true ) ) {
-					$result = $this->products->create_qb_object_from_wp_object( $product );
-					$item_id = isset( $result->Id ) ? $result->Id : 0;
-				}
-
-				if ( $item_id ) {
-					$line['SalesItemLineDetail']['ItemRef'] = array(
-						'value' => $item_id,
-						'name'  => $product->get_name(),
-					);
-				}
-
+				$line = $this->create_invoice_line_from_item( $item );
+				$line['LineNum'] = ++$linenums;
 				$args['Line'][] = $line;
 			}
 		}
+
+		// Add fees as normal line items. Should come before shipping or will be a blank spot in the invoice.
+		if ( ! empty( $fee_lines ) ) {
+			foreach ( (array) $fee_lines as $fee ) {
+				$line = $this->create_fee_line_from_item( $fee );
+				$line['LineNum'] = ++$linenums;
+				$args['Line'][] = $line;
+			}
+		}
+
+		// TODO; test coupons.. Not in WC yet, but coming in version 3.2.
+		// https://woocommerce.wordpress.com/2017/08/24/coupon-and-cart-improvements-in-3-2/
+		if ( ! empty( $coupon_lines ) ) {
+			foreach ( (array) $coupon_lines as $coupon ) {
+				$line = $this->create_discount_line_from_item( $coupon );
+				$line['LineNum'] = ++$linenums;
+				$args['Line'][] = $line;
+			}
+		}
+
+		if ( ! empty( $shipping_lines ) ) {
+			$shipping_line = $this->create_shipping_line_from_items( $shipping_lines );
+			if ( ! empty( $shipping_line ) ) {
+
+				// This avoids ValidationFault (code 2050):
+				// String length is either shorter or longer than supported by specification.  Min:0 Max:30 supported.
+				$args['ShipMethodRef'] = substr( $shipping_line['Description'], 0, 30 );
+
+				// Remove this so it doesn't show as a line item in the invoice.
+				unset( $shipping_line['Description'] );
+
+				$args['Line'][] = $shipping_line;
+			}
+		}
+		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
 
 		// $preferences = $this->get_preferences();
 		// if ( ! empty( $preferences->SalesFormsPrefs->CustomTxnNumbers ) && 'false' !== $preferences->SalesFormsPrefs->CustomTxnNumbers ) {
@@ -194,6 +226,88 @@ class Invoices extends Base {
 		// }
 
 		return $args;
+	}
+
+	protected function create_invoice_line_from_item( $item ) {
+		$product = $item->get_product();
+
+		$line = array(
+			'Description'         => $item->get_name(),
+			'Amount'              => number_format( $item->get_total(), 2 ),
+			'DetailType'          => 'SalesItemLineDetail',
+			'SalesItemLineDetail' => array(
+				'UnitPrice' => number_format( $product->get_price(), 2 ),
+				'Qty'       => max( 1, $item->get_quantity() ),
+			),
+		);
+
+		$item_id = $this->products->get_connected_qb_id( $product );
+
+		if ( ! $item_id && apply_filters( 'zwqoi_create_items_from_invoice_products', true ) ) {
+			$result = $this->products->create_qb_object_from_wp_object( $product );
+			$item_id = isset( $result->Id ) ? $result->Id : 0;
+		}
+
+		if ( $item_id ) {
+			$line['SalesItemLineDetail']['ItemRef'] = array(
+				'value' => $item_id,
+				'name'  => $product->get_formatted_name(),
+			);
+		}
+
+		return $line;
+	}
+
+	protected function create_fee_line_from_item( $fee ) {
+		$total = number_format( $fee->get_total(), 2 );
+		$line = array(
+			'Description'         => $fee->get_name(),
+			'Amount'              => $total,
+			'DetailType'          => 'SalesItemLineDetail',
+			'SalesItemLineDetail' => array(
+				'MarkupInfo' => array(
+					'PercentBased' => false,
+					'Value'        => $total,
+				),
+			),
+		);
+
+		return $line;
+	}
+
+	protected function create_discount_line_from_item( $coupon ) {
+		$line = array(
+			'Description'         => $coupon->get_name(),
+			'Amount'              => number_format( $coupon->get_discount(), 2 ),
+			'DetailType'          => 'DiscountLineDetailfor',
+			'DiscountLineDetail' => array(
+				'PercentBased' => false,
+			),
+		);
+
+		return $line;
+	}
+
+	protected function create_shipping_line_from_items( $shipping_items ) {
+		$description = array();
+		$shipping_total = 0;
+		foreach ( $shipping_items as $shipping ) {
+			$description[]  = $shipping->get_name();
+			$shipping_total += $shipping->get_total();
+		}
+
+		$line = array(
+			'Amount'      => number_format( $shipping_total, 2 ),
+			'Description' => implode( '; ', $description ),
+			'DetailType'  => 'SalesItemLineDetail',
+			'SalesItemLineDetail' => array(
+				'ItemRef' => array(
+					'value' => 'SHIPPING_ITEM_ID',
+				),
+			),
+		);
+
+		return $line;
 	}
 
 	public function has_changes( $args, $compare ) {
