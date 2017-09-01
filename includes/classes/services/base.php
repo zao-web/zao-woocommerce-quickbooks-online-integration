@@ -125,6 +125,7 @@ abstract class Base extends Service {
 			$intuit_errors = array(
 				__( 'Intuit Error Type', 'zwqoi' )    => $error->getIntuitErrorType(),
 				__( 'Intuit Error Code', 'zwqoi' )    => $error->getIntuitErrorCode(),
+				__( 'Intuit Error Element', 'zwqoi' ) => is_callable( array( $error, 'getIntuitErrorElement' ) ) ? $error->getIntuitErrorElement() : null,
 				__( 'Intuit Error Message', 'zwqoi' ) => $error->getIntuitErrorMessage(),
 				__( 'Intuit Error Detail', 'zwqoi' )  => $error->getIntuitErrorDetail(),
 			);
