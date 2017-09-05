@@ -194,15 +194,15 @@ class Invoices extends Base {
 			}
 		}
 
-		// TODO; test coupons.. Not in WC yet, but coming in version 3.2.
-		// https://woocommerce.wordpress.com/2017/08/24/coupon-and-cart-improvements-in-3-2/
-		if ( ! empty( $coupon_lines ) ) {
-			foreach ( (array) $coupon_lines as $coupon ) {
-				$line = $this->create_discount_line_from_item( $coupon );
-				$line['LineNum'] = ++$linenums;
-				$args['Line'][] = $line;
-			}
-		}
+		// TODO; Maybe Wait for coupon improvements in WC 3.2,
+		// https://woocommerce.wordpress.com/2017/08/24/coupon-and-cart-improvements-in-3-2/.
+		// if ( ! empty( $coupon_lines ) ) {
+		// 	$lines = $this->create_discount_lines_from_coupon_items( $coupon_lines );
+		// 	foreach ( $lines as $line ) {
+		// 		$line['LineNum'] = ++$linenums;
+		// 		$args['Line'][] = $line;
+		// 	}
+		// }
 
 		if ( ! empty( $shipping_lines ) ) {
 			$shipping_line = $this->create_shipping_line_from_items( $shipping_lines );
@@ -218,13 +218,14 @@ class Invoices extends Base {
 				$args['Line'][] = $shipping_line;
 			}
 		}
-		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
 
 		// $preferences = $this->get_preferences();
 		// if ( ! empty( $preferences->SalesFormsPrefs->CustomTxnNumbers ) && 'false' !== $preferences->SalesFormsPrefs->CustomTxnNumbers ) {
 			$args['DocNumber'] = $order->get_id();
 		// }
 
+		// error_log( __FUNCTION__ . ':' . __LINE__ .') $args: '. print_r( $args, true ) );
+		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
 		return $args;
 	}
 
@@ -260,8 +261,12 @@ class Invoices extends Base {
 
 	protected function create_fee_line_from_item( $fee ) {
 		$total = number_format( $fee->get_total(), 2 );
-		$line = array(
-			'Description'         => $fee->get_name(),
+		return self::fee_line( $fee->get_name(), $total );
+	}
+
+	protected static function fee_line( $description, $total ) {
+		return array(
+			'Description'         => $description,
 			'Amount'              => $total,
 			'DetailType'          => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
@@ -271,21 +276,43 @@ class Invoices extends Base {
 				),
 			),
 		);
-
-		return $line;
 	}
 
-	protected function create_discount_line_from_item( $coupon ) {
-		$line = array(
-			'Description'         => $coupon->get_name(),
-			'Amount'              => number_format( $coupon->get_discount(), 2 ),
-			'DetailType'          => 'DiscountLineDetailfor',
-			'DiscountLineDetail' => array(
-				'PercentBased' => false,
-			),
-		);
+	protected function create_discount_lines_from_coupon_items( $coupon_lines ) {
+		$lines = array();
+		$total_percent = 0;
 
-		return $line;
+		foreach ( $coupon_lines as $coupon_item ) {
+			$coupon = new \WC_Coupon( $coupon_item->get_code() );
+
+			if ( ! $coupon->is_valid() ) {
+				continue;
+			}
+
+			if ( $coupon->is_type( 'percent' ) ) {
+				$total_percent += $coupon_item->get_discount();
+
+			} else {
+
+				$lines[] = self::fee_line(
+					$coupon_item->get_name(),
+					number_format( $coupon_item->get_discount(), 2 )
+				);
+			}
+		}
+
+		if ( ! empty( $total_percent ) ) {
+			$lines[] = array(
+				'Description'         => __( 'Coupon(s)', 'zwqoi' ),
+				'DetailType'          => 'DiscountLineDetail',
+				'DiscountLineDetail' => array(
+					'PercentBased' => true,
+					'DiscountPercent' => $total_percent,
+				),
+			);
+		}
+
+		return $lines;
 	}
 
 	protected function create_shipping_line_from_items( $shipping_items ) {
