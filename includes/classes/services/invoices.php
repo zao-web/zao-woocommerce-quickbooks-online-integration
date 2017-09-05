@@ -465,8 +465,8 @@ class Invoices extends Base {
 
 	public function get_qb_object_name( $qb_object ) {
 		return sprintf( __( 'Invoice #%d', 'zwqoi' ), self::get_value_from_object( $qb_object, array(
-			'Id',
 			'DocNumber',
+			'Id',
 		) ) );
 	}
 
