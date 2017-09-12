@@ -92,6 +92,8 @@ class Customers extends UI_Base {
 			? sanitize_text_field( $qb_object->PrimaryEmailAddr->Address )
 			: $company_slug . '@example.com';
 
+		$email = self::parse_email( $email );
+
 		$userdata = array(
 			'user_login' => wp_slash( $company_slug ),
 			'user_email' => wp_slash( $email ),
@@ -265,7 +267,11 @@ class Customers extends UI_Base {
 		}
 
 		if ( ! empty( $customer->PrimaryEmailAddr->Address ) ) {
-			$args['user_email'] = sanitize_text_field( $customer->PrimaryEmailAddr->Address );
+			$email = self::parse_email( $customer->PrimaryEmailAddr->Address );
+
+			if ( $email ) {
+				$args['user_email'] = sanitize_text_field( $email );
+			}
 		}
 
 		if ( ! empty( $customer->Notes ) ) {
@@ -427,6 +433,26 @@ class Customers extends UI_Base {
 	/*
 	 * Utilities
 	 */
+
+	public static function parse_email( $email ) {
+		if ( empty( $email ) ) {
+			return '';
+		}
+
+		$separators = array(
+			',',
+			';',
+		);
+
+		$orig_email = $email;
+		while ( ! is_email( $email ) && ! empty( $separators ) ) {
+			$separator = array_shift( $separators );
+			$bits = explode( $separator, $orig_email );
+			$email = trim( $bits[0] );
+		}
+
+		return $email;
+	}
 
 	public function search_query_format( $search_type ) {
 		switch ( $search_type ) {
