@@ -241,6 +241,14 @@ class Customers extends UI_Base {
 			return $customer;
 		}
 
+		if ( ! ( $customer instanceof API\Data\IPPCustomer ) ) {
+			return new \WP_Error(
+				'zwqoi_update_wp_object_with_qb_object_error',
+				__( 'There was an error finding the Customer object.', 'zwqoi' ),
+				$customer
+			);
+		}
+
 		$company_name = self::get_customer_company_name( $customer, false );
 
 		$args = array(
