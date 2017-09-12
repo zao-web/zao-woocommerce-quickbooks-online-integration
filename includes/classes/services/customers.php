@@ -312,63 +312,76 @@ class Customers extends UI_Base {
 		$wc_user = new \WC_Customer( $user_id );
 
 		$parts = array(
-			'first_name' => 'set_billing_first_name',
-			'last_name'  => 'set_billing_last_name',
-			'user_email' => 'set_billing_email',
-			'company'    => 'set_billing_company',
+			'first_name' => 'first_name',
+			'last_name'  => 'last_name',
+			'user_email' => 'email',
+			'company'    => 'company',
 		);
 
 		foreach ( $parts as $part => $cb ) {
 			if ( ! empty( $user_args[ $part ] ) ) {
-				call_user_func( array( $wc_user, $cb ), $user_args[ $part ] );
+				call_user_func( array( $wc_user, "set_billing_$cb" ), $user_args[ $part ] );
+
+				if ( ! empty( $customer->ShipAddr ) && is_callable( array( $wc_user, "set_shipping_$cb" ) ) ) {
+					call_user_func( array( $wc_user, "set_shipping_$cb" ), $user_args[ $part ] );
+				}
 			}
 		}
 
 		if ( ! empty( $customer->BillAddr ) ) {
-			$parts = array(
-				'Line1'                  => 'set_billing_address_1',
-				'City'                   => 'set_billing_city',
-				'Country'                => 'set_billing_country',
-				'PostalCode'             => 'set_billing_postcode',
-			);
-			foreach ( $parts as $part => $cb ) {
-				if ( ! empty( $customer->BillAddr->{$part} ) ) {
-					call_user_func( array( $wc_user, $cb ), $customer->BillAddr->{$part} );
-				}
-			}
+			self::map_customer_address_fields( $wc_user, $customer->BillAddr, 'billing' );
+		}
 
-			$addr_2 = '';
-			foreach ( array( 'Line2', 'Line3', 'Line4', 'Line5', ) as $part ) {
-				if ( ! empty( $customer->BillAddr->{$part} ) ) {
-					$addr_2 .= $customer->BillAddr->{$part};
-				}
-			}
-
-			if ( ! empty( $addr_2 ) ) {
-				$wc_user->set_billing_address_2( $addr_2 );
-			}
+		if ( ! empty( $customer->ShipAddr ) ) {
+			self::map_customer_address_fields( $wc_user, $customer->ShipAddr, 'shipping' );
 		}
 
 		if ( ! empty( $customer->PrimaryPhone->FreeFormNumber ) ) {
 			$wc_user->set_billing_phone( $customer->PrimaryPhone->FreeFormNumber );
 		}
 
-		if ( ! empty( $customer->BillAddr->CountrySubDivisionCode ) ) {
+		return $wc_user->save();
+	}
 
-			$state = $customer->BillAddr->CountrySubDivisionCode;
+	public function map_customer_address_fields( $wc_user, $address, $woo_address_type ) {
+		$address_parts = array(
+			'Line1'                  => "set_{$woo_address_type}_address_1",
+			'City'                   => "set_{$woo_address_type}_city",
+			'Country'                => "set_{$woo_address_type}_country",
+			'PostalCode'             => "set_{$woo_address_type}_postcode",
+		);
+		foreach ( $address_parts as $part => $cb ) {
+			if ( ! empty( $address->{$part} ) ) {
+				call_user_func( array( $wc_user, $cb ), $address->{$part} );
+			}
+		}
 
-			$countrycode = ! empty( $customer->BillAddr->CountryCode ) ? $customer->BillAddr->CountryCode : 'US';
+		$addr_2 = '';
+		foreach ( array( 'Line2', 'Line3', 'Line4', 'Line5', ) as $part ) {
+			if ( ! empty( $address->{$part} ) ) {
+				$addr_2 .= $address->{$part};
+			}
+		}
+
+		if ( ! empty( $addr_2 ) ) {
+			call_user_func( array( $wc_user, "set_{$woo_address_type}_address_2" ), $addr_2 );
+		}
+
+		if ( ! empty( $address->CountrySubDivisionCode ) ) {
+
+			$state = $address->CountrySubDivisionCode;
+
+			$countrycode = ! empty( $address->CountryCode ) ? $address->CountryCode : 'US';
 			$states = WC()->countries->get_states( $countrycode );
 
 			if ( isset( $states[ $state ] ) ) {
-				$wc_user->set_billing_country( $countrycode );
-				$wc_user->set_billing_state( $state );
+				call_user_func( array( $wc_user, "set_{$woo_address_type}_country" ), $countrycode );
+				call_user_func( array( $wc_user, "set_{$woo_address_type}_state" ), $state );
 			}
 
-			$wc_user->set_billing_state( $state );
+			call_user_func( array( $wc_user, "set_{$woo_address_type}_state" ), $state );
 		}
 
-		return $wc_user->save();
 	}
 
 	protected function output_result_item( $item ) {
