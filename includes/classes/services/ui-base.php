@@ -176,8 +176,8 @@ abstract class UI_Base extends Base {
 		try {
 			$query = $wpdb->prepare(
 				$this->search_query_format( $search_type ),
-				// Make this a fuzzy search.
-				"%$search_term%"
+				// Make this a fuzzy search if it is not already.
+				false === strpos( $search_term, '%' ) ? "%$search_term%" : $search_term
 			);
 
 			$results = $this->query( $query );
