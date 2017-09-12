@@ -12,6 +12,7 @@ class Settings extends Base {
 
 	public function init() {
 		add_action( 'cmb2_admin_init', array( $this, 'register_theme_options_metabox' ) );
+		add_action( 'load-settings_page_' . self::KEY, array( $this, 'add_help_tab' ) );
 		add_filter( 'plugin_action_links_' . ZWQOI_BASENAME, array( $this, 'settings_link' ) );
 		add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_nav_link' ), 5 );
 
@@ -29,7 +30,9 @@ class Settings extends Base {
 			add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_connect_link' ), 20 );
 			remove_action( 'qbo_connect_ui_settings_output', array( qbo_connect_ui()->settings, 'settings_title_output' ) );
 			add_action( 'qbo_connect_ui_settings_output', array( '\\Zao\\WC_QBO_Integration\\Services\\UI_Base', 'admin_page_title' ) );
+			add_action( 'load-settings_page_qbo_connect_ui_settings', array( $this, 'add_help_tab' ) );
 		}
+
 	}
 
 	/**
@@ -108,6 +111,16 @@ class Settings extends Base {
 		if ( function_exists( 'qbo_connect_ui' ) && is_object( qbo_connect_ui()->settings ) ) {
 			return qbo_connect_ui()->settings->settings_url();
 		}
+	}
+
+	public function add_help_tab() {
+		$screen = get_current_screen();
+
+		$screen->add_help_tab( array(
+			'id'      => 'zwqoi-help',
+			'title'   => __( 'QuickBooks Woo Integration', 'zwqoi' ),
+			'content' => '<p>' . __( 'For more documentation, visit the <a href="https://github.com/zao-web/zao-woocommerce-quickbooks-online-integration/wiki">Zao WooCommerce QuickBooks Online Integration wiki</a>.', 'zwqoi' ) . '</p>',
+		) );
 	}
 
 	/**

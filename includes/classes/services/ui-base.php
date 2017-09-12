@@ -68,7 +68,18 @@ abstract class UI_Base extends Base {
 			$func = 'add_submenu_page';
 		}
 
-		call_user_func_array( $func, $args );
+		$page = call_user_func_array( $func, $args );
+		add_action( 'load-' . $page, array( $this, 'add_help_tab' ) );
+	}
+
+	public function add_help_tab() {
+		$screen = get_current_screen();
+
+		$screen->add_help_tab( array(
+			'id'      => 'zwqoi-help',
+			'title'   => __( 'QuickBooks Woo Integration', 'zwqoi' ),
+			'content' => '<p>' . __( 'By default, these will perform &quot;fuzzy&quot; searches, trying to find any results which match the given term. If you want more control of the search parameters, you can use the <code>%</code> character to indicate a wildcard. For instance, to search for all Customers whose email ends with <code>zao.is</code>, you can search for <code>%zao.is%</code>..', 'zwqoi' ) . '</p><p>' . __( 'For more documentation, visit the <a href="https://github.com/zao-web/zao-woocommerce-quickbooks-online-integration/wiki">Zao WooCommerce QuickBooks Online Integration wiki</a>', 'zwqoi' ) . '</p>',
+		) );
 	}
 
 	public function parent_slug() {
