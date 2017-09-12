@@ -369,8 +369,8 @@ class Products extends UI_Base {
 
 	public function search_query_format( $search_type ) {
 		return 'name' === $search_type
-			? "SELECT * FROM Item WHERE Name = %s"
-			: "SELECT * FROM Item WHERE Id = %s";
+			? "SELECT * FROM Item WHERE Name LIKE %s"
+			: "SELECT * FROM Item WHERE Id LIKE %s";
 	}
 
 	public function get_by_id_error( $error, $qb_id ) {

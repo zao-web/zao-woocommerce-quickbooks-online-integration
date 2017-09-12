@@ -423,11 +423,11 @@ class Customers extends UI_Base {
 	public function search_query_format( $search_type ) {
 		switch ( $search_type ) {
 			case 'name':
-				return "SELECT * FROM Customer WHERE CompanyName = %s";
+				return "SELECT * FROM Customer WHERE CompanyName LIKE %s";
 			case 'email':
-				return "SELECT * FROM Customer WHERE PrimaryEmailAddr = %s";
+				return "SELECT * FROM Customer WHERE PrimaryEmailAddr LIKE %s";
 			default:
-				return "SELECT * FROM Customer WHERE Id = %s";
+				return "SELECT * FROM Customer WHERE Id LIKE %s";
 		}
 	}
 
