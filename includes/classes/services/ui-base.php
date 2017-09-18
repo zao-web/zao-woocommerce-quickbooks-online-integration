@@ -24,13 +24,13 @@ abstract class UI_Base extends Base {
 	abstract public function text_object_id_name();
 	abstract public function text_submit_button();
 	abstract public function text_search_help();
+	abstract public function text_result_error();
 
 	/*
 	 * Abstract methods
 	 */
 
 	abstract public function admin_page_url();
-	abstract protected function output_result_item( $item );
 	abstract public function validate_qb_object( $qb_id, $force = false );
 	abstract protected function import_qb_object( $qb_object );
 	abstract public function update_wp_object_with_qb_object( $wp_id, $qb_object );
@@ -47,7 +47,11 @@ abstract class UI_Base extends Base {
 		}
 
 		if ( $this->settings_updated() ) {
-			$this->add_import_success_notice( absint( $_GET['settings-updated'] ) );
+			$this->add_import_success_notices( sanitize_text_field( $_GET['settings-updated'] ) );
+		}
+
+		if ( $this->get_stored_error_notices() ) {
+			$this->add_import_error_notices();
 		}
 	}
 
@@ -90,38 +94,121 @@ abstract class UI_Base extends Base {
 		include_once ZWQOI_INC . 'views/search-page.php';
 	}
 
+	protected function get_result_item( $item ) {
+		ob_start();
+		include ZWQOI_INC . 'views/search-page-result-item.php';
+		return ob_get_clean();
+	}
+
+	protected function output_result_item( $item ) {
+		echo $this->get_result_item( $item );
+	}
+
 	public function maybe_import_or_update() {
-		$result = ! empty( $_GET[ $this->update_query_var ] )
-			? $this->update_wp_object_with_qb_object( $_GET[ $this->update_query_var ], $_GET[ $this->import_query_var ] )
-			: $this->validate_and_import_qb_object( $_GET[ $this->import_query_var ], ! empty( $_GET['force'] ) );
+		if ( ! empty( $_GET[ $this->update_query_var ] ) ) {
 
-		// If update/import was successful:
-		if ( ! is_wp_error( $result ) ) {
+			$result = $this->update_wp_object_with_qb_object(
+				sanitize_text_field( $_GET[ $this->update_query_var ] ),
+				sanitize_text_field( $_GET[ $this->import_query_var ] )
+			);
 
-			$url = self::_param( 'redirect' )
-				? urldecode( self::_param( 'redirect' ) )
-				: $this->settings_url( array( 'settings-updated' => $result ) ) ;
+		} else {
+			$items = array();
 
-			// Redirect to requested location, or redirect back to search page with success message.
-			self::redirect( esc_url_raw( $url ) );
+			if ( isset( $_GET[ $this->import_query_var ] ) ) {
+				$items = array( $_GET[ $this->import_query_var ] );
+			}
+
+			if ( isset( $_POST['items'] ) ) {
+				$items = $_POST['items'];
+			}
+
+			$result = $this->validate_and_import_qb_objects( $items, ! empty( $_GET['force'] ) );
 		}
 
+		if ( ! is_array( $result ) ) {
+			$result = array( $result );
+		}
+
+		return $this->handle_import_qb_objects_results( $result );
+	}
+
+	public function handle_import_qb_objects_results( $results ) {
+		$errors    = array();
+		$successes = array();
+
+		foreach ( $results as $result ) {
+			// If update/import was not successful:
+			if ( is_wp_error( $result ) ) {
+				$errors[] = $this->get_error_message_from_result( $result );
+			} else {
+				$successes[] = $result;
+			}
+		}
+
+		if ( ! empty( $successes ) ) {
+
+			if ( ! empty( $errors ) ) {
+				// Store error messages for display on the success page.
+				// Will call: get_stored_error_notices(), and add_import_error_notices()
+				update_option( $this->admin_page_slug . '_messages', $errors );
+			}
+
+			// Redirect to requested location, or redirect back to search page with success message.
+			self::do_success_redirect( implode( ',', $successes ) );
+		}
+
+		// If no successes, simply register the setting notices to disply on this page.
+		foreach ( $errors as $error ) {
+			$this->add_settings_notice( $error['message'], $error['err_type'] );
+		}
+	}
+
+	public function get_error_message_from_result( $result ) {
 		$error    = $result->get_error_data();
-		$msg      = $result->get_error_message();
+		$message  = $result->get_error_message();
 		$err_type = 'error';
 
 		if ( self::is_fault_handler( $error ) ) {
-			$msg .= self::fault_handler_error_output( $error );
+			$message .= self::fault_handler_error_output( $error );
 		}
 
 		if ( $this->is_wp_object( $error ) ) {
-			$qb_id = absint( $_GET[ $this->import_query_var ] );
+			$qb_id    = absint( $_REQUEST[ $this->import_query_var ] );
 			$err_type = 'notice-warning';
-			$msg .= '<span class="qb-import-button-wrap">' . $this->update_from_qb_button( $error->ID, $qb_id );
-			$msg .= ' or ' . $this->force_import_from_qb_button( $qb_id, true ) . "</span>\n";
+			$message  .= '<span class="qb-import-button-wrap">' . $this->update_from_qb_button( $error->ID, $qb_id );
+			$message  .= ' or ' . $this->force_import_from_qb_button( $qb_id, true ) . "</span>\n";
 		}
 
-		$this->add_settings_notice( $msg, $err_type );
+		return compact( 'message', 'err_type' );
+	}
+
+	public function do_success_redirect( $wp_id ) {
+		$url = self::_param( 'redirect' )
+			? urldecode( self::_param( 'redirect' ) )
+			: $this->settings_url( array( 'settings-updated' => $wp_id ) ) ;
+
+		// Redirect to requested location, or redirect back to search page with success message.
+		// If custom redirect location not requested,
+		// settings_updated() and add_import_success_notices()
+		// will be excecuted in the next page load.
+		self::redirect( esc_url_raw( $url ) );
+	}
+
+	public function validate_and_import_qb_objects( $qb_ids, $force = false ) {
+		if ( ! is_array( $qb_ids ) || empty( $qb_ids ) ) {
+			return new \WP_Error(
+				'zwqoi_import_qb_objects_empty',
+				__( 'You have not selected any items for import.', 'zwqoi' )
+			);
+		}
+
+		$results = array();
+		foreach ( $qb_ids as $qb_id ) {
+			$results[] = $this->validate_and_import_qb_object( sanitize_text_field( $qb_id ), $force );
+		}
+
+		return $results;
 	}
 
 	public function validate_and_import_qb_object( $qb_id, $force = true ) {
@@ -273,6 +360,32 @@ abstract class UI_Base extends Base {
 		return $url;
 	}
 
+	public function add_import_success_notices( $wp_ids ) {
+		if ( is_numeric( $wp_ids ) ) {
+			$wp_ids = array( $wp_ids );
+		} elseif ( false !== strpos( $wp_ids, ',' ) ) {
+			$wp_ids = explode( ',', $wp_ids );
+		} else {
+			return;
+		}
+
+		foreach ( $wp_ids as $wp_id ) {
+			$this->add_import_success_notice( $wp_id );
+		}
+	}
+
+	public function add_import_error_notices() {
+		$notices = $this->get_stored_error_notices();
+
+		foreach ( $notices as $error ) {
+			if ( isset( $error['message'], $error['err_type'] ) ) {
+				$this->add_settings_notice( $error['message'], $error['err_type'] );
+			}
+		}
+
+		delete_option( $this->admin_page_slug . '_messages' );
+	}
+
 	public function add_import_success_notice( $wp_id ) {
 		$link = $this->get_wp_object_edit_link( $wp_id );
 
@@ -292,17 +405,24 @@ abstract class UI_Base extends Base {
 		);
 	}
 
+	public function get_stored_error_notices() {
+		$notices = get_option( $this->admin_page_slug . '_messages' );
+
+		return ! empty( $notices ) && is_array( $notices )
+			? $notices
+			: false;
+	}
+
 	public function settings_updated() {
 		return $this->is_admin_page()
-			&& isset( $_GET['settings-updated'] )
-			&& is_numeric( $_GET['settings-updated'] );
+			&& ! empty( $_GET['settings-updated'] );
 	}
 
 	public function is_importing() {
 		return $this->is_admin_page()
-			&& isset( $_GET[ $this->import_query_var ], $_GET['nonce'] )
-			&& is_numeric( $_GET[ $this->import_query_var ] )
-			&& wp_verify_nonce( $_GET['nonce'], $this->admin_page_slug );
+			&& isset( $_REQUEST[ $this->import_query_var ], $_REQUEST['nonce'] )
+			&& ! empty( $_REQUEST[ $this->import_query_var ] )
+			&& wp_verify_nonce( $_REQUEST['nonce'], $this->admin_page_slug );
 	}
 
 	public function is_admin_page() {

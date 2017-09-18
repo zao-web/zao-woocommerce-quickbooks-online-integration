@@ -46,11 +46,40 @@
 	<?php if ( $this->has_search() ) { ?>
 		<h3><?php printf( __( 'Search Results for &ldquo;%s&rdquo; (found <strong>%d</strong> result): ', 'zwqoi' ), esc_attr( wp_unslash( $_POST['search_term'] ) ), $this->results_count ); ?></h3>
 		<p class="description"><?php $this->get_text( 'search_help', true ); ?></p>
-		<ul>
-			<?php foreach ( $this->search_results as $result ) { ?>
-				<?php echo $this->output_result_item( $result ); ?>
-			<?php } ?>
-		</ul>
+		<form method="POST" id="qbo-items-import" action="<?php echo esc_url( $this->settings_url() ); ?>">
+			<?php wp_nonce_field( $this->import_query_var, $this->import_query_var ); ?>
+			<?php wp_nonce_field( $this->admin_page_slug, 'nonce' ); ?>
+			<table class="wp-list-table widefat fixed striped posts">
+				<thead>
+					<tr>
+						<td class="manage-column column-cb check-column">
+							<label class="screen-reader-text" for="cb-select-all-1">Select All</label>
+							<input id="cb-select-all-1" type="checkbox">
+						</td>
+						<th class="manage-column column-title column-primary">
+							<span><?php _e( 'Name', 'zwqoi' ); ?></span>
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $this->search_results as $result ) { ?>
+						<?php $this->output_result_item( $result ); ?>
+					<?php } ?>
+				</tbody>
+				<tfoot>
+					<tr>
+						<td class="manage-column column-cb check-column">
+							<label class="screen-reader-text" for="cb-select-all-2">Select All</label>
+							<input id="cb-select-all-2" type="checkbox">
+						</td>
+						<th class="manage-column column-title column-primary">
+							<span><?php _e( 'Name', 'zwqoi' ); ?></span>
+						</th>
+					</tr>
+				</tfoot>
+			</table>
+			<?php submit_button( __( 'Import Item(s)', 'zwqoi' ) ); ?>
+		</form>
 	<?php } ?>
 
 </div>

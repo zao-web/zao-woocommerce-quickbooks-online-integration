@@ -386,17 +386,8 @@ class Customers extends UI_Base {
 
 	}
 
-	protected function output_result_item( $item ) {
-		$html = '';
-		if ( 'error' === $item['id'] ) {
-			$html .= '<li class="error">' . $item['name'] . '</li>';
-		} elseif ( ! empty( $item['taken'] ) ) {
-			$user = $this->get_wp_object( $item['taken'] );
-			$user_edit_link = '<a href="' . $this->get_wp_edit_url( $user ) . '">' . $this->get_wp_name( $user ) . '</a>';
-			$html .= '<li><strike>' . $item['name'] . '</strike> ' . sprintf( esc_attr__( 'This Customer is already associated to %s', 'zwqoi' ), $user_edit_link ) . '</li>';
-		} else {
-			$html .= '<li><span class="dashicons dashicons-download"></span> <a href="' . esc_url( $this->import_url( $item['id'] ) ) . '">' . $item['name'] . '</a></li>';
-		}
+	protected function get_result_item( $item ) {
+		$html = parent::get_result_item( $item );
 
 		return apply_filters( 'zwqoi_output_customer_search_result_item', $html, $item );
 	}
@@ -443,6 +434,10 @@ class Customers extends UI_Base {
 
 	public function text_search_help() {
 		return __( 'Click on one of the results to import the result as a WordPress user.', 'zwqoi' );
+	}
+
+	public function text_result_error() {
+		return __( 'This Customer is already associated to %s', 'zwqoi' );
 	}
 
 	/*

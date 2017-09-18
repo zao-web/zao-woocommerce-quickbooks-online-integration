@@ -305,16 +305,8 @@ class Products extends UI_Base {
 		}
 	}
 
-	protected function output_result_item( $item ) {
-		$html = '';
-		if ( 'error' === $item['id'] ) {
-			$html .= '<li class="error">' . $item['name'] . '</li>';
-		} elseif ( ! empty( $item['taken'] ) ) {
-			$product_edit_link = '<a href="' . get_edit_post_link( $item['taken'] ) . '">' . $this->get_product( $item['taken'] )->get_name() . '</a>';
-			$html .= '<li><strike>' . $item['name'] . '</strike> ' . sprintf( esc_attr__( 'This Product is already associated to %s', 'zwqoi' ), $product_edit_link ) . '</li>';
-		} else {
-			$html .= '<li><span class="dashicons dashicons-download"></span> <a href="' . esc_url( $this->import_url( $item['id'] ) ) . '">' . $item['name'] . '</a></li>';
-		}
+	protected function get_result_item( $item ) {
+		$html = parent::get_result_item( $item );
 
 		return apply_filters( 'zwqoi_output_product_search_result_item', $html, $item );
 	}
@@ -361,6 +353,10 @@ class Products extends UI_Base {
 
 	public function text_search_help() {
 		return __( 'Click on one of the results to import the result as a WordPress product.', 'zwqoi' );
+	}
+
+	public function text_result_error() {
+		return __( 'This Item is already associated to %s', 'zwqoi' );
 	}
 
 	/*
