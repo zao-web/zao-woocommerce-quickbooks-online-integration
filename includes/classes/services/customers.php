@@ -263,7 +263,7 @@ class Customers extends UI_Base {
 		);
 
 		if ( ! empty( $customer->WebAddr ) ) {
-			$args['user_url'] = sanitize_text_field( $customer->WebAddr );
+			$args['user_url'] = sanitize_text_field( $customer->WebAddr->URI );
 		}
 
 		if ( ! empty( $customer->PrimaryEmailAddr->Address ) ) {
