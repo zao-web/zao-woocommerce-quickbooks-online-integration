@@ -13,14 +13,16 @@ class Customers extends UI_Base {
 	public function init() {
 		parent::init();
 		add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_nav_link' ), 6 );
-		add_action( 'zwqoi_search_page_form_search_types', array( $this, 'add_email_search' ) );
+		add_action( 'zwqoi_search_page_form_search_types', array( $this, 'add_additional_search_params' ) );
 	}
 
-	public function add_email_search( $service ) {
+	public function add_additional_search_params( $service ) {
 		if ( $service === $this ) {
 			?>
 			&nbsp;
-			<label><input type="radio" name="search_type" value="email" <?php checked( self::_param_is( 'search_type', 'email' ) ); ?>/> <?php _e( 'Contact Email', 'zwqoi' ); ?></label>
+			<label><input type="radio" name="search_type" value="email" <?php checked( self::_param_is( 'search_type', 'email' ) ); ?>/> <?php _e( 'Customer Email', 'zwqoi' ); ?></label>
+			&nbsp;
+			<label><input type="radio" name="search_type" value="lastname" <?php checked( self::_param_is( 'search_type', 'lastname' ) ); ?>/> <?php _e( 'Customer Last Name', 'zwqoi' ); ?></label>
 			<?php
 		}
 	}
@@ -432,11 +434,11 @@ class Customers extends UI_Base {
 	}
 
 	public function text_object_id_name() {
-		return __( 'Company ID', 'zwqoi' );
+		return __( 'Customer ID', 'zwqoi' );
 	}
 
 	public function text_submit_button() {
-		return __( 'Search for Company', 'zwqoi' );
+		return __( 'Search for Customer(s)', 'zwqoi' );
 	}
 
 	public function text_search_help() {
@@ -471,6 +473,8 @@ class Customers extends UI_Base {
 		switch ( $search_type ) {
 			case 'name':
 				return "SELECT * FROM Customer WHERE CompanyName LIKE %s";
+			case 'lastname':
+				return "SELECT * FROM Customer WHERE FamilyName LIKE %s";
 			case 'email':
 				return "SELECT * FROM Customer WHERE PrimaryEmailAddr LIKE %s";
 			default:

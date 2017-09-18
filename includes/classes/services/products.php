@@ -356,7 +356,7 @@ class Products extends UI_Base {
 	}
 
 	public function text_submit_button() {
-		return __( 'Search for Item', 'zwqoi' );
+		return __( 'Search for Item(s)', 'zwqoi' );
 	}
 
 	public function text_search_help() {
