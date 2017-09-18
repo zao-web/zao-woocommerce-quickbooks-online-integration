@@ -30,7 +30,7 @@
 		<form method="POST" id="qbo-search-form" action="<?php echo esc_url( $this->settings_url() ); ?>">
 			<?php wp_nonce_field( $this->admin_page_slug, $this->admin_page_slug ); ?>
 			<?php do_action( 'zwqoi_search_page_form', $this ); ?>
-			<input class="large-text" placeholder="<?php echo esc_attr( $this->get_text( 'search_placeholder' ) ); ?>" type="text" name="search_term" value="<?php echo esc_attr( self::_param( 'search_term' ) ); ?>">
+			<input class="large-text" placeholder="<?php echo esc_attr( $this->get_text( 'search_placeholder' ) ); ?>" type="text" name="search_term" value="<?php echo esc_attr( wp_unslash( self::_param( 'search_term' ) ) ); ?>">
 			<p><?php _e( 'Search by:', 'zwqoi' ); ?>
 				&nbsp;
 				<label><input type="radio" name="search_type" value="name" <?php checked( ! isset( $_POST['search_type'] ) || self::_param_is( 'search_type', 'name' ) ); ?> /> <?php $this->get_text( 'object_single_name_name', true ); ?></label>
