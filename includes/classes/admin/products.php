@@ -13,6 +13,10 @@ class Products extends Connected_Object_Base {
 
 		if ( is_admin() ) {
 			add_action( 'add_meta_boxes', array( $this, 'register_metabox' ) );
+			add_action( 'restrict_manage_posts', array( $this, 'products_qb_filter' ) );
+			if ( self::_param( 'qb_connected' ) ) {
+				add_action( 'pre_get_posts', array( $this, 'maybe_limit_to_qb_products' ) );
+			}
 		}
 	}
 
@@ -25,6 +29,33 @@ class Products extends Connected_Object_Base {
 			: __( 'Connect a Quickbooks Product?', 'zwqoi' );
 
 		add_meta_box( 'qb-connect-product', $title, array( $this, 'output_connected_qb_buttons' ), 'product', 'side' );
+	}
+
+	public function products_qb_filter( $post_type ) {
+		if ( 'product' !== $post_type ) {
+			return;
+		}
+
+		echo '
+			<label>
+				<input type="checkbox" value="1" name="qb_connected" id="connected-to-qb" ' , checked( self::_param( 'qb_connected' ) ) , '/>
+				&nbsp' . __( 'QuickBooks Connected', 'zwqoi' ) . '
+			</label>
+		';
+	}
+
+	public function maybe_limit_to_qb_products( $query ) {
+		$meta_query = $query->get( 'meta_query' );
+		if ( empty( $meta_query ) || ! is_array( $meta_query ) ) {
+			$meta_query = array();
+		}
+
+		$meta_query[] = array(
+			'key'     => $this->service->meta_key,
+			'compare' => 'EXISTS',
+		);
+
+		$query->set( 'meta_query', $meta_query );
 	}
 
 	/*
