@@ -154,6 +154,9 @@ class Invoices extends Base {
 			'CustomerRef' => array(
 				'value' => $qb_customer_id,
 			),
+			'BillEmail' => array(
+				'Address' => $order->get_billing_email()
+			),
 
 			/*
 			 * Individual line items of a transaction. Valid Line types include:
