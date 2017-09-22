@@ -67,12 +67,16 @@ class Invoices extends Base {
 
 		$args = $this->qb_object_args( $order );
 
+		error_log( var_export( $args, 1 ) );
+
 		if ( is_wp_error( $args ) ) {
 			return $args;
 		}
 
 		$result = $this->create( $args );
 		$error  = $this->get_error();
+
+		error_log( var_export( $result, 1 ) );
 
 		if ( isset( $result[1]->Id ) ) {
 			$this->update_connected_qb_id( $order, $result[1]->Id );
@@ -137,13 +141,14 @@ class Invoices extends Base {
 
 	protected function qb_object_args( $wp_object ) {
 		$order          = $this->get_wp_object( $wp_object );
-		$qb_customer_id = $this->get_order_customer_id( $order->get_user_id() );
+		$customer_id    = $order->get_user_id();
+		$qb_customer_id = $this->get_order_customer_id( $customer_id );
 
 		if ( is_wp_error( $qb_customer_id ) ) {
 			return false;
 		}
 
-		$customer = new WC_Customer( $order->get_user_id() );
+		$customer = new WC_Customer( $customer_id );
 
 		$args = array(
 			'CustomerRef' => array(
