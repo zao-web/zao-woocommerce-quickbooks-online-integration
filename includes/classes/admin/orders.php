@@ -67,6 +67,10 @@ class Orders extends Connected_Object_Base {
 		return __( 'Once a Quickbooks Invoice is associated, the WordPress data for this order will be replaced with the QuickBooks Invoice data. Are you sure you want to proceed?', 'zwqoi' );
 	}
 
+	public function text_select_result_to_associate() {
+		return __( 'Select the result you want to associate with the WordPress order.', 'zwqoi' );
+	}
+
 	public function disconnect_quickbooks_notice() {
 		parent::disconnect_quickbooks_notice();
 		$this->notice(

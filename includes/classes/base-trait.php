@@ -27,6 +27,8 @@ trait Base_Trait {
 		$method = 'text_' . $key;
 		$text = $this->{$method}();
 
+		$text = apply_filters( 'zwqoi_' . $method, $text );
+
 		if ( ! $echo ) {
 			return $text;
 		}

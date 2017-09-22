@@ -47,7 +47,7 @@ abstract class UI_Base extends Base {
 		}
 
 		if ( $this->settings_updated() ) {
-			$this->add_import_success_notices( sanitize_text_field( $_GET['settings-updated'] ) );
+			$this->add_import_success_notices( sanitize_text_field( self::_param( 'settings-updated' ) ) );
 		}
 
 		if ( $this->get_stored_error_notices() ) {
@@ -105,22 +105,23 @@ abstract class UI_Base extends Base {
 	}
 
 	public function maybe_import_or_update() {
-		if ( ! empty( $_GET[ $this->update_query_var ] ) ) {
+		if ( ! empty( self::_param( $this->update_query_var ) ) ) {
 
 			$result = $this->update_wp_object_with_qb_object(
-				sanitize_text_field( $_GET[ $this->update_query_var ] ),
-				sanitize_text_field( $_GET[ $this->import_query_var ] )
+				sanitize_text_field( self::_param( $this->update_query_var ) ),
+				sanitize_text_field( self::_param( $this->import_query_var ) )
 			);
 
 		} else {
 			$items = array();
 
-			if ( isset( $_GET[ $this->import_query_var ] ) ) {
-				$items = array( $_GET[ $this->import_query_var ] );
-			}
+			$to_import = self::_param( $this->import_query_var );
+			if ( $to_import ) {
+				$items = $to_import;
 
-			if ( isset( $_POST['items'] ) ) {
-				$items = $_POST['items'];
+				if ( ! is_array( $to_import ) ) {
+					$items = array( $items );
+				}
 			}
 
 			$result = $this->validate_and_import_qb_objects( $items, ! empty( $_GET['force'] ) );
@@ -174,7 +175,7 @@ abstract class UI_Base extends Base {
 		}
 
 		if ( $this->is_wp_object( $error ) ) {
-			$qb_id    = absint( $_REQUEST[ $this->import_query_var ] );
+			$qb_id    = absint( self::_param( $this->import_query_var ) );
 			$err_type = 'notice-warning';
 			$message  .= '<span class="qb-import-button-wrap">' . $this->update_from_qb_button( $error->ID, $qb_id );
 			$message  .= ' or ' . $this->force_import_from_qb_button( $qb_id, true ) . "</span>\n";
@@ -237,8 +238,8 @@ abstract class UI_Base extends Base {
 		static $has_search = null;
 		if ( null === $has_search ) {
 			$has_search = (
-				isset( $_POST['search_term'], $_POST[ $this->admin_page_slug ] )
-				&& wp_verify_nonce( $_POST[ $this->admin_page_slug ], $this->admin_page_slug )
+				isset( $_REQUEST['search_term'], $_REQUEST[ $this->admin_page_slug ] )
+				&& wp_verify_nonce( $_REQUEST[ $this->admin_page_slug ], $this->admin_page_slug )
 			);
 		}
 
@@ -248,7 +249,7 @@ abstract class UI_Base extends Base {
 	public function set_search_results_from_query() {
 		if ( null === $this->search_results ) {
 			$this->search_results = $this->search_results(
-				wp_unslash( $_POST['search_term'] ),
+				wp_unslash( self::_param( 'search_term' ) ),
 				wp_unslash( self::_param( 'search_type' ) )
 			);
 
@@ -266,6 +267,7 @@ abstract class UI_Base extends Base {
 
 		$result_items = array();
 
+		$search_type = empty( $search_type ) ? 'name' : $search_type;
 		$search_term = 'id' === $search_type ? absint( $search_term ) : sanitize_text_field( $search_term );
 		if ( empty( $search_term ) ) {
 			return $result_items;

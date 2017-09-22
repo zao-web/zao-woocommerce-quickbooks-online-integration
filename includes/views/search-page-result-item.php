@@ -6,7 +6,7 @@
 <?php } else { ?>
 	<th scope="row" class="check-column">
 		<label class="screen-reader-text" for="cb-select-<?php echo $item['id']; ?>"><?php echo $item['name']; ?></label>
-		<input id="cb-select-<?php echo $item['id']; ?>" type="checkbox" name="items[]" value="<?php echo $item['id']; ?>">
+		<input id="cb-select-<?php echo $item['id']; ?>" type="checkbox" class="zwqoi-result-item" name="<?php echo $this->import_query_var; ?>[]" value="<?php echo $item['id']; ?>">
 	</th>
 	<td><label for="cb-select-<?php echo $item['id']; ?>"><?php echo $item['name']; ?></label></td>
 <?php } ?>

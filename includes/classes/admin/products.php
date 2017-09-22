@@ -58,6 +58,35 @@ class Products extends Connected_Object_Base {
 		$query->set( 'meta_query', $meta_query );
 	}
 
+	public function change_item_output( $html, $item ) {
+		if ( 'error' !== $item['id'] && empty( $item['taken'] ) ) {
+			$html = str_replace( 'type="checkbox"', 'type="radio"', $html );
+			$html = preg_replace_callback( '~name="(.+)\[\]"~', function( $matches ) {
+				return str_replace( '[]', '', $matches[0] );
+			}, $html );
+
+			add_action( 'admin_footer', array( __CLASS__, 'warn_when_submit' ) );
+		}
+		return $html;
+	}
+
+	public static function warn_when_submit() {
+		?>
+		<script type="text/javascript">
+			jQuery( function( $ ) {
+				$( '#qbo-items-import' ).on( 'submit', function( evt ) {
+					if ( ! $( this ).find( '.zwqoi-result-item:checked' ).val() ) {
+						return;
+					}
+					if ( ! confirm( '<?php esc_attr_e( 'This will replace the WordPress product data with the QuickBooks Product data. Are you sure you want to proceed?', 'zwqoi' ); ?>' ) ) {
+						evt.preventDefault();
+					}
+				} );
+			});
+		</script>
+		<?php
+	}
+
 	/*
 	 * Text methods
 	 */
@@ -88,6 +117,10 @@ class Products extends Connected_Object_Base {
 
 	protected function maybe_get_quickbook_sync_button( $qb_id ) {
 		return str_replace( '&nbsp;&nbsp;', '</p><p>', parent::maybe_get_quickbook_sync_button( $qb_id ) );
+	}
+
+	public function text_select_result_to_associate() {
+		return __( 'Select the result you want to associate with the WordPress product.', 'zwqoi' );
 	}
 
 	public function disconnect_quickbooks_notice() {

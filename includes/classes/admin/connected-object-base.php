@@ -7,7 +7,7 @@ use Zao\WC_QBO_Integration\Services\Base as Service_Base;
 abstract class Connected_Object_Base extends Base {
 
 	protected $service;
-	protected $wp_object;
+	protected $wp_object = null;
 	protected $disconnect_query_var = '';
 	protected $connect_query_var = '';
 	protected $connect_nonce_query_var = '';
@@ -28,6 +28,12 @@ abstract class Connected_Object_Base extends Base {
 
 		add_action( 'zwqoi_customer_search_page', array( $this, 'maybe_redirect_back' ) );
 		add_action( 'zwqoi_search_page_form', array( $this, 'maybe_add_hidden_inputs' ) );
+		add_action( 'zwqoi_search_page_import_results_form', array( $this, 'maybe_add_hidden_inputs' ) );
+
+		if ( $this->is_connecting() ) {
+			add_filter( 'zwqoi_text_search_help', array( $this, 'text_select_result_to_associate' ) );
+			add_action( 'zwqoi_output_product_search_result_item', array( $this, 'change_item_output' ), 11, 2 );
+		}
 	}
 
 	/*
@@ -40,6 +46,7 @@ abstract class Connected_Object_Base extends Base {
 	abstract public function text_disconnect_qb_object_confirm();
 	abstract public function text_connect_qb_object();
 	abstract public function text_connect_qb_object_confirm();
+	abstract public function text_select_result_to_associate();
 
 	/*
 	 * Abstract methods
@@ -130,26 +137,34 @@ abstract class Connected_Object_Base extends Base {
 	}
 
 	public function maybe_add_hidden_inputs( $service ) {
-		if (
-			! self::_param( $this->connect_query_var )
-			|| $this->service !== $service
-			|| ! wp_verify_nonce( self::_param( $this->connect_nonce_query_var ), get_class( $this ) )
-		) {
+		if ( $this->service !== $service ) {
 			return false;
 		}
 
-		$this->wp_object = $this->service->get_wp_object( absint( self::_param( $this->connect_query_var ) ) );
-		if ( ! $this->wp_object || is_wp_error( $this->wp_object ) ) {
+		if ( ! $this->is_connecting() ) {
 			return false;
 		}
 
-		$edit_link = $this->service->get_wp_object_edit_link( $this->wp_object );
+		$wp_id = $this->service->get_wp_id( $this->wp_object );
 
 		echo '
-		<input type="hidden" name="' . $this->connect_query_var . '" value="' . $this->service->get_wp_id( $this->wp_object ) . '"/>
+		<input type="hidden" name="' . $this->connect_query_var . '" value="' . $wp_id . '"/>
 		<input type="hidden" name="' . $this->connect_nonce_query_var . '" value="' . esc_attr( self::_param( $this->connect_nonce_query_var ) ) . '"/>
-		<p>' . sprintf( $this->get_text( 'search_to_connect' ), $edit_link ) . '</p>
 		';
+
+		if ( 'zwqoi_search_page_form' === current_filter() ) {
+
+			$edit_link = $this->service->get_wp_object_edit_link( $this->wp_object );
+			echo ' <p>' . sprintf( $this->get_text( 'search_to_connect' ), $edit_link ) . '</p>';
+
+		} else {
+
+			echo '
+			<input type="hidden" name="redirect" value="' . esc_url( add_query_arg( 'qb_updated', 1, $this->service->get_wp_edit_url( $this->wp_object ) ) ) . '"/>
+			<input type="hidden" name="' . $this->service->update_query_var . '" value="' . absint( $wp_id ) . '"/>
+			';
+
+		}
 
 		return true;
 	}
@@ -190,6 +205,25 @@ abstract class Connected_Object_Base extends Base {
 			&& self::_param( $this->id_query_var )
 			&& wp_verify_nonce( self::_param( $this->disconnect_query_var ), get_class( $this ) )
 		);
+	}
+
+	public function is_connecting() {
+		if (
+			! self::_param( $this->connect_query_var )
+			|| ! wp_verify_nonce( self::_param( $this->connect_nonce_query_var ), get_class( $this ) )
+		) {
+			return false;
+		}
+
+		if ( null === $this->wp_object ) {
+			$this->wp_object = $this->service->get_wp_object( absint( self::_param( $this->connect_query_var ) ) );
+		}
+
+		if ( ! $this->wp_object || is_wp_error( $this->wp_object ) ) {
+			return false;
+		}
+
+		return $this->wp_object;
 	}
 
 	public function was_updated() {

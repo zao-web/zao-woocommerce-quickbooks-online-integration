@@ -42,6 +42,10 @@ class Users extends Connected_Object_Base {
 		return __( 'Once a Quickbooks Customer is associated, the WordPress user data for this user will be replaced with the QuickBooks Customer data. Are you sure you want to proceed?', 'zwqoi' );
 	}
 
+	public function text_select_result_to_associate() {
+		return __( 'Select the result you want to associate with the WordPress user.', 'zwqoi' );
+	}
+
 	public function disconnect_quickbooks_notice() {
 		parent::disconnect_quickbooks_notice();
 		$this->notice(

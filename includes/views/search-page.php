@@ -27,7 +27,7 @@
 
 	<?php } else { ?>
 
-		<form method="POST" id="qbo-search-form" action="<?php echo esc_url( $this->settings_url() ); ?>">
+		<form method="POST" id="qbo-search-form" action="<?php echo esc_url( $this->settings_url( $_GET ) ); ?>">
 			<?php wp_nonce_field( $this->admin_page_slug, $this->admin_page_slug ); ?>
 			<?php do_action( 'zwqoi_search_page_form', $this ); ?>
 			<input class="large-text" placeholder="<?php echo esc_attr( $this->get_text( 'search_placeholder' ) ); ?>" type="text" name="search_term" value="<?php echo esc_attr( wp_unslash( self::_param( 'search_term' ) ) ); ?>">
@@ -44,11 +44,12 @@
 	<?php } ?>
 
 	<?php if ( $this->has_search() ) { ?>
-		<h3><?php printf( __( 'Search Results for &ldquo;%s&rdquo; (found <strong>%d</strong> result): ', 'zwqoi' ), esc_attr( wp_unslash( $_POST['search_term'] ) ), $this->results_count ); ?></h3>
+		<h3><?php printf( __( 'Search Results for &ldquo;%s&rdquo; (found <strong>%d</strong> result): ', 'zwqoi' ), esc_attr( wp_unslash( self::_param( 'search_term' ) ) ), $this->results_count ); ?></h3>
 		<p class="description"><?php $this->get_text( 'search_help', true ); ?></p>
-		<form method="POST" id="qbo-items-import" action="<?php echo esc_url( $this->settings_url() ); ?>">
+		<form method="POST" id="qbo-items-import" action="<?php echo esc_url( $this->settings_url( $_GET ) ); ?>">
 			<?php wp_nonce_field( $this->import_query_var, $this->import_query_var ); ?>
 			<?php wp_nonce_field( $this->admin_page_slug, 'nonce' ); ?>
+			<?php do_action( 'zwqoi_search_page_import_results_form', $this ); ?>
 			<table class="wp-list-table widefat fixed striped posts">
 				<thead>
 					<tr>
