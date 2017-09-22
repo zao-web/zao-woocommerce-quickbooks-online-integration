@@ -241,6 +241,7 @@ class Customers extends UI_Base {
 		}
 
 		$customer = $qb_id instanceof API\Data\IPPCustomer ? $qb_id : $this->get_by_id( $qb_id );
+
 		if ( is_wp_error( $customer ) ) {
 			return $customer;
 		}

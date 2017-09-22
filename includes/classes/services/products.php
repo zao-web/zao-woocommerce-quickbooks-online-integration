@@ -124,8 +124,17 @@ class Products extends UI_Base {
 		}
 
 		$item = $qb_id instanceof API\Data\IPPItem ? $qb_id : $this->get_by_id( $qb_id );
+
 		if ( is_wp_error( $item ) ) {
 			return $item;
+		}
+
+		if ( ! ( $item instanceof API\Data\IPPItem ) ) {
+			return new \WP_Error(
+				'zwqoi_update_wp_object_with_qb_object_error',
+				__( 'There was an error finding the QuickBooks Item.', 'zwqoi' ),
+				$item
+			);
 		}
 
 		$item_name = self::get_item_name( $item, false );
