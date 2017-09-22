@@ -434,7 +434,7 @@ class Customers extends UI_Base {
 	}
 
 	public function text_search_help() {
-		return __( 'Click on one of the results to import the result as a WordPress user.', 'zwqoi' );
+		return __( 'Select the results you want to import as WordPress users.', 'zwqoi' );
 	}
 
 	public function text_result_error() {
