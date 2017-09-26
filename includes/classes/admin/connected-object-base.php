@@ -82,7 +82,10 @@ abstract class Connected_Object_Base extends Base {
 		if ( $qb_id ) {
 			echo $this->maybe_get_quickbook_sync_button( $wp_object->{$this->service->meta_key} );
 		} else {
-			echo '<p>' . $this->connect_qb_button() . '</p>';
+			echo '<p>' . $this->connect_qb_button( array(
+				'search_term' => $this->service->get_wp_name( $this->wp_object ),
+				$this->service->admin_page_slug => wp_create_nonce( $this->service->admin_page_slug ),
+			) ) . '</p>';
 		}
 	}
 
