@@ -254,7 +254,7 @@ class Invoices extends Base {
 	}
 
 	protected function create_invoice_line_from_item( $item ) {
-		$product = $item->get_product();
+		$product = $parent = $item->get_product();
 
 		$line = array(
 			'Description'         => $item->get_name(),
@@ -266,17 +266,22 @@ class Invoices extends Base {
 			),
 		);
 
-		$item_id = $this->products->get_connected_qb_id( $product );
+		// Connected QB products are currently set on parent product, not per-variation.
+		if ( 'variation' === $product->get_type() ) {
+			$parent = wc_get_product( $product->get_parent_id() );
+		}
+
+		$item_id = $this->products->get_connected_qb_id( $parent );
 
 		if ( ! $item_id && apply_filters( 'zwqoi_create_items_from_invoice_products', true ) ) {
-			$result = $this->products->create_qb_object_from_wp_object( $product );
+			$result = $this->products->create_qb_object_from_wp_object( $parent );
 			$item_id = isset( $result->Id ) ? $result->Id : 0;
 		}
 
 		if ( $item_id ) {
 			$line['SalesItemLineDetail']['ItemRef'] = array(
-				'value' => $item_id,
-				'name'  => $product->get_formatted_name(),
+				'value' => $item_id, // Use parent connected QB ID
+				'name'  => $product->get_formatted_name(), // But use variation product name.
 			);
 		}
 
