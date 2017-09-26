@@ -17,8 +17,35 @@ class Invoices extends Base {
 	}
 
 	public function init() {
+		add_action( 'all_admin_notices', array( $this, 'maybe_output_invoice_error' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'maybe_invoice' ), 10, 2 );
 		add_action( 'woocommerce_update_order', array( $this, 'maybe_invoice' ), 10, 2 );
+	}
+
+	public function maybe_output_invoice_error() {
+		$screen = get_current_screen();
+
+		if ( 'woocommerce' !== $screen->parent_base || 'shop_order' !== $screen->post_type  ) {
+			return;
+		}
+
+		$order = wc_get_order( get_the_ID() );
+		if ( ! $order ) {
+			return;
+		}
+
+		$result = $order->get_meta( 'zwqoi_invoice_order_error' );
+
+		if ( ! isset( $result['err_type'], $result['message'] ) ) {
+			return;
+		}
+
+		echo '<div id="message" class="' . $result['err_type'] . ' notice is-dismissible"><p>';
+		echo $result['message'];
+		echo '</p></div>';
+
+		$order->delete_meta_data( 'zwqoi_invoice_order_error' );
+		$order->save_meta_data();
 	}
 
 	public function maybe_invoice( $order_id ) {
@@ -39,8 +66,7 @@ class Invoices extends Base {
 		}
 
 		if ( is_wp_error( $invoice ) ) {
-			// TODO: surface errors.
-			error_log( __FUNCTION__ . ':' . __LINE__ .') Invoice get error: '. print_r( $invoice, true ) );
+			$this->store_api_error( __( 'Invoice fetch error:', 'zwqoi' ), $invoice, $order );
 			return false;
 		}
 
@@ -49,12 +75,19 @@ class Invoices extends Base {
 			: $this->create_qb_object_from_wp_object( $order );
 
 		if ( is_wp_error( $result ) ) {
-			// TODO: surface errors.
-			error_log( __FUNCTION__ . ':' . __LINE__ .') Invoice create/update error: '. print_r( $result, true ) );
+			$this->store_api_error( __( 'Invoice create/update error:', 'zwqoi' ), $result, $order );
 			return false;
 		}
 
 		return $result;
+	}
+
+	public function store_api_error( $title, $error, $order ) {
+		$result = $this->products->get_error_message_from_result( $result );
+		$result['message'] = '<strong>'. $title .'</strong><br>' . $result['message'];
+
+		$order->update_meta_data( 'zwqoi_invoice_order_error', $result );
+		$order->save_meta_data();
 	}
 
 	public function get_order_customer_id( $user_id ) {
