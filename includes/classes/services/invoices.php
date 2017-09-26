@@ -9,6 +9,7 @@ class Invoices extends Base {
 
 	protected $meta_key = '_qb_invoice_id';
 	protected $post_type = 'shop_order';
+	protected $customer_objects = array();
 
 	public function __construct( Customers $customers, Products $products ) {
 		$this->customers = $customers;
@@ -38,12 +39,22 @@ class Invoices extends Base {
 		}
 
 		if ( is_wp_error( $invoice ) ) {
-			return error_log( __FUNCTION__ . ':' . __LINE__ .') Invoice error: '. print_r( $invoice, true ) );
+			// TODO: surface errors.
+			error_log( __FUNCTION__ . ':' . __LINE__ .') Invoice get error: '. print_r( $invoice, true ) );
+			return false;
 		}
 
-		return $invoice
+		$result = $invoice
 			? $this->update_qb_object_with_wp_object( $invoice, $order )
 			: $this->create_qb_object_from_wp_object( $order );
+
+		if ( is_wp_error( $result ) ) {
+			// TODO: surface errors.
+			error_log( __FUNCTION__ . ':' . __LINE__ .') Invoice create/update error: '. print_r( $result, true ) );
+			return false;
+		}
+
+		return $result;
 	}
 
 	public function get_order_customer_id( $user_id ) {
@@ -52,6 +63,8 @@ class Invoices extends Base {
 			$customer = $this->customers->create_qb_object_from_wp_object( $user_id );
 
 			if ( isset( $customer->Id ) ) {
+				// Store this customer.
+				$this->customer_objects[ $customer->Id ] = $customer;
 				$customer_id = $customer->Id;
 			}
 		}
@@ -67,16 +80,12 @@ class Invoices extends Base {
 
 		$args = $this->qb_object_args( $order );
 
-		error_log( var_export( $args, 1 ) );
-
 		if ( is_wp_error( $args ) ) {
 			return $args;
 		}
 
 		$result = $this->create( $args );
 		$error  = $this->get_error();
-
-		error_log( var_export( $result, 1 ) );
 
 		if ( isset( $result[1]->Id ) ) {
 			$this->update_connected_qb_id( $order, $result[1]->Id );
@@ -141,21 +150,19 @@ class Invoices extends Base {
 
 	protected function qb_object_args( $wp_object ) {
 		$order          = $this->get_wp_object( $wp_object );
-		$customer_id    = $order->get_user_id();
-		$qb_customer_id = $this->get_order_customer_id( $customer_id );
+		$qb_customer_id = $this->get_order_customer_id( $order->get_user_id() );
+		$customer       = $this->get_customer_by_id( $qb_customer_id );
 
 		if ( is_wp_error( $qb_customer_id ) ) {
 			return false;
 		}
-
-		$customer = new WC_Customer( $customer_id );
 
 		$args = array(
 			'CustomerRef' => array(
 				'value' => $qb_customer_id,
 			),
 			'BillEmail' => array(
-				'Address' => $order->get_billing_email()
+				'Address' => $order->get_billing_email(),
 			),
 
 			/*
@@ -168,6 +175,14 @@ class Invoices extends Base {
 			 */
 			'Line' => array(),
 		);
+
+		if ( ! empty( $customer->SalesTermRef ) ) {
+			$args['SalesTermRef'] = $customer->SalesTermRef;
+		}
+
+		if ( ! empty( $customer->ShipMethodRef ) ) {
+			$args['ShipMethodRef'] = $customer->ShipMethodRef;
+		}
 
 		$line_items = $order->get_items( 'line_item' );
 
@@ -232,6 +247,7 @@ class Invoices extends Base {
 			$args['DocNumber'] = $order->get_id();
 		// }
 
+		// echo '<xmp>'. __LINE__ .') $customer: '. print_r( $customer, true ) .'</xmp>';
 		// error_log( __FUNCTION__ . ':' . __LINE__ .') $args: '. print_r( $args, true ) );
 		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
 		return $args;
@@ -514,5 +530,25 @@ class Invoices extends Base {
 	// public function maybe_invoice( $order, $data_store ) {
 
 	// }
+
+	public function get_customer_by_id( $customer_id ) {
+		if ( ! isset( $this->customer_objects[ $customer_id ] ) ) {
+
+			$customer = $this->customers->get_by_id( $customer_id );
+			$error    = $this->get_error();
+
+			if ( $error ) {
+				return new WP_Error(
+					'zwqoi_invoice_get_customer_by_id_error',
+					sprintf( __( 'There was an error fetching this QuickBooks Customer (%d).', 'zwqoi' ), $customer_id ),
+					$error
+				);
+			}
+
+			$this->customer_objects[ $customer_id ] = $customer;
+		}
+
+		return $this->customer_objects[ $customer_id ];
+	}
 
 }
