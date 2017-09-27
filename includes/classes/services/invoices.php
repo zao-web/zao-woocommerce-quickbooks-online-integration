@@ -83,7 +83,7 @@ class Invoices extends Base {
 	}
 
 	public function store_api_error( $title, $error, $order ) {
-		$result = $this->products->get_error_message_from_result( $result );
+		$result = $this->products->get_error_message_from_result( $error );
 		$result['message'] = '<strong>'. $title .'</strong><br>' . $result['message'];
 
 		$order->update_meta_data( 'zwqoi_invoice_order_error', $result );
