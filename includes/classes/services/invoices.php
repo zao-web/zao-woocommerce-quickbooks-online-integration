@@ -125,8 +125,7 @@ class Invoices extends Base {
 		}
 
 		$args = $this->qb_object_args( $order );
-
-		if ( is_wp_error( $args ) ) {
+		if ( is_wp_error( $args ) || ! $args ) {
 			return $args;
 		}
 
@@ -159,6 +158,9 @@ class Invoices extends Base {
 		}
 
 		$args = $this->qb_object_args( $order );
+		if ( is_wp_error( $args ) || ! $args ) {
+			return $args;
+		}
 
 		$has_changes = $this->has_changes( $args, $invoice );
 
@@ -200,7 +202,7 @@ class Invoices extends Base {
 		$customer       = $this->get_customer_by_id( $qb_customer_id );
 
 		if ( is_wp_error( $qb_customer_id ) ) {
-			return false;
+			return $qb_customer_id;
 		}
 
 		$args = array(
