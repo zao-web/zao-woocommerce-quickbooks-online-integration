@@ -13,7 +13,7 @@ class Orders extends Connected_Object_Base {
 			add_action( 'add_meta_boxes', array( $this, 'register_metabox' ) );
 		}
 
-		add_action( 'zwoowh_order_cloner_pre_save', array( $this, 'remove_qb_id_from_cloned_order' ) )
+		add_action( 'zwoowh_order_cloner_pre_save', array( $this, 'remove_qb_id_from_cloned_order' ) );
 	}
 
 	public function remove_qb_id_from_cloned_order( $cloner ) {
