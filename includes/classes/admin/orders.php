@@ -12,6 +12,13 @@ class Orders extends Connected_Object_Base {
 		if ( is_admin() ) {
 			add_action( 'add_meta_boxes', array( $this, 'register_metabox' ) );
 		}
+
+		add_action( 'zwoowh_order_cloner_pre_save', array( $this, 'remove_qb_id_from_cloned_order' ) )
+	}
+
+	public function remove_qb_id_from_cloned_order( $cloner ) {
+		// Make sure the _qb_invoice_id meta is not set for the wholesale cloned orders.
+		$cloner->order->delete_meta_data( '_qb_invoice_id' );
 	}
 
 	public function register_metabox( $post_type ) {
