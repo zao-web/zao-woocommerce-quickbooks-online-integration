@@ -34,15 +34,20 @@ class Invoices extends Base {
 			return;
 		}
 
-		$result = $order->get_meta( 'zwqoi_invoice_order_error' );
+		$results = $order->get_meta( 'zwqoi_invoice_order_error' );
 
-		if ( ! isset( $result['err_type'], $result['message'] ) ) {
+		if ( ! is_array( $results ) ) {
 			return;
 		}
 
-		echo '<div id="message" class="' . $result['err_type'] . ' notice is-dismissible"><p>';
-		echo $result['message'];
-		echo '</p></div>';
+		foreach ( $results as $result ) {
+			if ( ! isset( $result['err_type'], $result['message'] ) ) {
+				continue;
+			}
+			echo '<div id="message" class="' . $result['err_type'] . ' notice is-dismissible"><p>';
+			echo $result['message'];
+			echo '</p></div>';
+		}
 
 		$order->delete_meta_data( 'zwqoi_invoice_order_error' );
 		$order->save_meta_data();
@@ -86,7 +91,15 @@ class Invoices extends Base {
 		$result = $this->products->get_error_message_from_result( $error );
 		$result['message'] = '<strong>'. $title .'</strong><br>' . $result['message'];
 
-		$order->update_meta_data( 'zwqoi_invoice_order_error', $result );
+		$results = $order->get_meta( 'zwqoi_invoice_order_error' );
+
+		if ( ! is_array( $results ) ) {
+			$results = array();
+		}
+
+		$results[] = $result;
+
+		$order->update_meta_data( 'zwqoi_invoice_order_error', $results );
 		$order->save_meta_data();
 	}
 
