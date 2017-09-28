@@ -290,6 +290,10 @@ class Invoices extends Base {
 			}
 		}
 
+		if ( empty( $args['Line'] ) ) {
+			return false;
+		}
+
 		// $preferences = $this->get_preferences();
 		// if ( ! empty( $preferences->SalesFormsPrefs->CustomTxnNumbers ) && 'false' !== $preferences->SalesFormsPrefs->CustomTxnNumbers ) {
 			$args['DocNumber'] = $order->get_id();
