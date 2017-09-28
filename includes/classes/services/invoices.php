@@ -307,6 +307,7 @@ class Invoices extends Base {
 
 	protected function create_invoice_line_from_item( $item ) {
 		$product = $parent = $item->get_product();
+		$is_variation = 'variation' === $product->get_type();
 
 		$line = array(
 			'Description'         => $item->get_name(),
@@ -319,21 +320,33 @@ class Invoices extends Base {
 		);
 
 		// Connected QB products are currently set on parent product, not per-variation.
-		if ( 'variation' === $product->get_type() ) {
+		if ( $is_variation ) {
 			$parent = wc_get_product( $product->get_parent_id() );
 		}
 
-		$item_id = $this->products->get_connected_qb_id( $parent );
+		$qb_item_id = $this->products->get_connected_qb_id( $parent );
 
-		if ( ! $item_id && apply_filters( 'zwqoi_create_items_from_invoice_products', true ) ) {
+		if ( ! $qb_item_id && apply_filters( 'zwqoi_create_items_from_invoice_products', true ) ) {
 			$result = $this->products->create_qb_object_from_wp_object( $parent );
-			$item_id = isset( $result->Id ) ? $result->Id : 0;
+			$qb_item_id = isset( $result->Id ) ? $result->Id : 0;
 		}
 
-		if ( $item_id ) {
+		if ( $qb_item_id ) {
+			$sku = $product->get_sku();
+
+			if ( $sku ) {
+				$line['Description'] .= sprintf( __( ', SKU: %s', 'zwqoi' ), $sku );
+			}
+
+			if ( $is_variation ) {
+				$line['Description'] .= sprintf( __( ', Product ID: %d', 'zwqoi' ), $parent->get_id() );
+				$line['Description'] .= sprintf( __( ', Variation ID: %d', 'zwqoi' ), $product->get_id() );
+			} else {
+				$line['Description'] .= sprintf( __( ', Product ID: %d', 'zwqoi' ), $product->get_id() );
+			}
 			$line['SalesItemLineDetail']['ItemRef'] = array(
-				'value' => $item_id, // Use parent connected QB ID
-				'name'  => $product->get_formatted_name(), // But use variation product name.
+				'value' => $qb_item_id, // Use parent connected QB ID
+				'name'  => $line['Description'], // Will use variation product name if applicable.
 			);
 		}
 
