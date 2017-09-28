@@ -10,6 +10,7 @@ class Invoices extends Base {
 	protected $meta_key = '_qb_invoice_id';
 	protected $post_type = 'shop_order';
 	protected $customer_objects = array();
+	protected $to_invoice = array();
 
 	public function __construct( Customers $customers, Products $products ) {
 		$this->customers = $customers;
@@ -18,8 +19,8 @@ class Invoices extends Base {
 
 	public function init() {
 		add_action( 'all_admin_notices', array( $this, 'maybe_output_invoice_error' ) );
-		add_action( 'woocommerce_new_order', array( $this, 'maybe_invoice' ), 10, 2 );
-		add_action( 'woocommerce_update_order', array( $this, 'maybe_invoice' ), 10, 2 );
+		add_action( 'woocommerce_new_order', array( $this, 'store_invoice_order_ids' ), 10, 2 );
+		add_action( 'woocommerce_update_order', array( $this, 'store_invoice_order_ids' ), 10, 2 );
 	}
 
 	public function maybe_output_invoice_error() {
@@ -53,15 +54,20 @@ class Invoices extends Base {
 		$order->save_meta_data();
 	}
 
-	public function maybe_invoice( $order_id ) {
-		if ( ! Settings::is_connected() ) {
-			return;
-		}
+	public function store_invoice_order_ids( $order_id ) {
+		$this->to_invoice[ $order_id ] = $order_id;
+		add_action( 'shutdown', array( $this, 'sync_invoices' ) );
+	}
 
-		if ( ! apply_filters( 'zwqoi_create_invoice_from_order', true, $order_id ) ) {
-			return;
+	public function sync_invoices() {
+		if ( ! empty( $this->to_invoice ) ) {
+			foreach ( $this->to_invoice as $order_id => $order_id ) {
+				$this->maybe_sync_invoice( $order_id );
+			}
 		}
+	}
 
+	public function maybe_sync_invoice( $order_id ) {
 		$order      = $this->get_wp_object( $order_id );
 		$invoice_id = $this->get_connected_qb_id( $order_id );
 		$invoice    = null;
