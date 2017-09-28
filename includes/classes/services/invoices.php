@@ -299,6 +299,8 @@ class Invoices extends Base {
 			$args['DocNumber'] = $order->get_id();
 		// }
 
+		$args = apply_filters( 'zwqoi_discount_lines', $args, $order, $qb_customer_id, $customer );
+
 		// echo '<xmp>'. __LINE__ .') $customer: '. print_r( $customer, true ) .'</xmp>';
 		// error_log( __FUNCTION__ . ':' . __LINE__ .') $args: '. print_r( $args, true ) );
 		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
@@ -338,24 +340,29 @@ class Invoices extends Base {
 				$line['Description'] .= sprintf( __( ', SKU: %s', 'zwqoi' ), $sku );
 			}
 
-			if ( $is_variation ) {
-				$line['Description'] .= sprintf( __( ', Product ID: %d', 'zwqoi' ), $parent->get_id() );
-				$line['Description'] .= sprintf( __( ', Variation ID: %d', 'zwqoi' ), $product->get_id() );
-			} else {
-				$line['Description'] .= sprintf( __( ', Product ID: %d', 'zwqoi' ), $product->get_id() );
+			if ( apply_filters( 'zwqoi_invoice_line_description_include_ids', false ) ) {
+				if ( $is_variation ) {
+					$line['Description'] .= sprintf( __( ', Product ID: %d', 'zwqoi' ), $parent->get_id() );
+					$line['Description'] .= sprintf( __( ', Variation ID: %d', 'zwqoi' ), $product->get_id() );
+				} else {
+					$line['Description'] .= sprintf( __( ', Product ID: %d', 'zwqoi' ), $product->get_id() );
+				}
 			}
+
 			$line['SalesItemLineDetail']['ItemRef'] = array(
 				'value' => $qb_item_id, // Use parent connected QB ID
 				'name'  => $line['Description'], // Will use variation product name if applicable.
 			);
 		}
 
-		return $line;
+		return apply_filters( 'zwqoi_invoice_line', $line, $product, $qb_item_id );
 	}
 
 	protected function create_fee_line_from_item( $fee ) {
 		$total = number_format( $fee->get_total(), 2 );
-		return self::fee_line( $fee->get_name(), $total );
+		$line = self::fee_line( $fee->get_name(), $total );
+
+		return apply_filters( 'zwqoi_fee_line', $line, $fee );
 	}
 
 	protected static function fee_line( $description, $total ) {
@@ -406,7 +413,7 @@ class Invoices extends Base {
 			);
 		}
 
-		return $lines;
+		return apply_filters( 'zwqoi_discount_lines', $lines, $coupon_lines );
 	}
 
 	protected function create_shipping_line_from_items( $shipping_items ) {
@@ -428,7 +435,7 @@ class Invoices extends Base {
 			),
 		);
 
-		return $line;
+		return apply_filters( 'zwqoi_shipping_line', $line, $shipping_items );
 	}
 
 	public function has_changes( $args, $compare ) {
