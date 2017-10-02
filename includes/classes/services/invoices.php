@@ -319,11 +319,11 @@ class Invoices extends Base {
 
 		$line = array(
 			'Description'         => $item->get_name(),
-			'Amount'              => number_format( $item->get_total(), 2, '.', '' ),
+			'Amount'              => floatval( number_format( $item->get_total(), 2, '.', '' ) ),
 			'DetailType'          => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
 				'UnitPrice' => number_format( $product->get_price(), 2, '.', '' ),
-				'Qty'       => max( 1, $item->get_quantity() ),
+				'Qty'       => intval( max( 1, $item->get_quantity() ) ),
 			),
 		);
 
@@ -374,7 +374,7 @@ class Invoices extends Base {
 	protected static function fee_line( $description, $total ) {
 		return array(
 			'Description'         => $description,
-			'Amount'              => $total,
+			'Amount'              => floatval( $total ),
 			'DetailType'          => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
 				'MarkupInfo' => array(
@@ -431,7 +431,7 @@ class Invoices extends Base {
 		}
 
 		$line = array(
-			'Amount'      => number_format( $shipping_total, 2, '.', '' ),
+			'Amount'      => floatval( number_format( $shipping_total, 2, '.', '' ) ),
 			'Description' => implode( '; ', $description ),
 			'DetailType'  => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
