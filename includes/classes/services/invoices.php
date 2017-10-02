@@ -319,10 +319,10 @@ class Invoices extends Base {
 
 		$line = array(
 			'Description'         => $item->get_name(),
-			'Amount'              => number_format( $item->get_total(), 2 ),
+			'Amount'              => number_format( $item->get_total(), 2, '.', '' ),
 			'DetailType'          => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
-				'UnitPrice' => number_format( $product->get_price(), 2 ),
+				'UnitPrice' => number_format( $product->get_price(), 2, '.', '' ),
 				'Qty'       => max( 1, $item->get_quantity() ),
 			),
 		);
@@ -365,7 +365,7 @@ class Invoices extends Base {
 	}
 
 	protected function create_fee_line_from_item( $fee ) {
-		$total = number_format( $fee->get_total(), 2 );
+		$total = number_format( $fee->get_total(), 2, '.', '' );
 		$line = self::fee_line( $fee->get_name(), $total );
 
 		return apply_filters( 'zwqoi_fee_line', $line, $fee );
@@ -403,7 +403,7 @@ class Invoices extends Base {
 
 				$lines[] = self::fee_line(
 					$coupon_item->get_name(),
-					number_format( $coupon_item->get_discount(), 2 )
+					number_format( $coupon_item->get_discount(), 2, '.', '' )
 				);
 			}
 		}
@@ -431,7 +431,7 @@ class Invoices extends Base {
 		}
 
 		$line = array(
-			'Amount'      => number_format( $shipping_total, 2 ),
+			'Amount'      => number_format( $shipping_total, 2, '.', '' ),
 			'Description' => implode( '; ', $description ),
 			'DetailType'  => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
@@ -485,8 +485,8 @@ class Invoices extends Base {
 				if ( is_numeric( $value ) && is_numeric( $compare_value ) )  {
 					$float = false !== strpos( $value, '.' ) || false !== strpos( $compare_value, '.' );
 					if ( $float ) {
-						$value = number_format( $value, 2 );
-						$compare_value = number_format( $compare_value, 2 );
+						$value = number_format( $value, 2, '.', '' );
+						$compare_value = number_format( $compare_value, 2 , '.', '' );
 					} else {
 						$value = intval( $value );
 						$compare_value = intval( $compare_value );
@@ -583,31 +583,6 @@ class Invoices extends Base {
 
 	public function create( $args ) {
 		return $this->create_invoice( $args );
-
-		/**
-		list( $invoice_obj, $result ) = $this->create_invoice( array(
-			// 'DocNumber' => '1070',
-			// 'LinkedTxn' => array(),
-			'Line' => array(
-				array(
-					'Description' => 'Sprinkler Purchases ?',
-					'Amount' => 192.55,
-					'DetailType' => 'SalesItemLineDetail',
-					'SalesItemLineDetail' => array(
-						'ItemRef' => array(
-							'value' => '17',
-							'name' => 'HOWDY'
-						),
-						'Qty' => 2,
-					),
-				),
-			),
-			'CustomerRef' => array(
-				'value' => $customer->Id,
-			)
-		) );
-		*/
-
 	}
 
 	// public function maybe_invoice( $order, $data_store ) {
@@ -633,5 +608,4 @@ class Invoices extends Base {
 
 		return $this->customer_objects[ $customer_id ];
 	}
-
 }
