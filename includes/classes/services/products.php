@@ -488,7 +488,7 @@ class Products extends UI_Base {
 	}
 
 	public function create( $args ) {
-		return $this->create_product( $args );
+		return $this->create_item( $args );
 		/**
 		$args = array(
 			'BillAddr' => array(
