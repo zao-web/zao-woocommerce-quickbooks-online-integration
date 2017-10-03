@@ -230,6 +230,10 @@ class Invoices extends Base {
 			'Line' => array(),
 		);
 
+		if ( empty( $args['CustomerRef']['value'] ) || empty( $args['BillEmail']['Address'] ) ) {
+			return false;
+		}
+
 		if ( ! empty( $customer->SalesTermRef ) ) {
 			$args['SalesTermRef'] = $customer->SalesTermRef;
 		}
