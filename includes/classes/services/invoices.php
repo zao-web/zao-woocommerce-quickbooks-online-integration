@@ -501,11 +501,13 @@ class Invoices extends Base {
 	}
 
 	public function update_connected_qb_id( $wp_id, $meta_value ) {
-		if ( $this->is_wp_object( $wp_id ) ) {
-			$wp_id = $this->get_wp_id( $wp_id );
+		$order = $this->get_wp_object( $wp_id );
+		if ( ! $order ) {
+			return false;
 		}
 
-		return update_post_meta( $wp_id, $this->meta_key, $meta_value );
+		$order->update_meta_data( $this->meta_key, $meta_value );
+		return $order->save_meta_data();
 	}
 
 	public function search_query_format( $search_type ) {
@@ -525,11 +527,15 @@ class Invoices extends Base {
 	}
 
 	public function get_wp_object( $wp_id ) {
+		if ( $wp_id instanceof WP_Post ) {
+			$wp_id = wc_get_order( $wp_id->ID );
+		}
+
 		return $this->is_wp_object( $wp_id ) ? $wp_id : wc_get_order( absint( $wp_id ) );
 	}
 
 	public function get_wp_id( $object ) {
-		if ( ! $this->is_wp_object( $object ) ) {
+		if ( ! $this->get_wp_object( $object ) ) {
 			return 0;
 		}
 
@@ -547,27 +553,23 @@ class Invoices extends Base {
 			return '';
 		}
 
-		if ( $object instanceof WP_Post ) {
-			return get_the_title( $object->ID );
-		}
-
-		if ( $object instanceof WC_Order ) {
-			return $object->get_name();
-		}
+		return $this->get_wp_object( $object )->get_name();
 	}
 
 	public function get_connected_qb_id( $wp_id ) {
-		if ( $this->is_wp_object( $wp_id ) ) {
-			$order = $wp_id;
-		} else {
-			$order = $this->get_wp_object( $wp_id );
+		$order = $this->get_wp_object( $wp_id );
+
+		return $order && $order->get_meta( $this->meta_key );
+	}
+
+	public function disconnect_qb_object( $wp_id ) {
+		$order = $this->get_wp_object( $wp_id );
+		if ( ! $order ) {
+			return false;
 		}
 
-		if ( is_callable( array( $order, 'get_meta' ) ) ) {
-			return $order->get_meta( $this->meta_key );
-		}
-
-		return get_post_meta( $this->get_wp_id( $order ), $this->meta_key, true );
+		$order->delete_meta_data( $this->meta_key );
+		return $order->save_meta_data();
 	}
 
 	public function get_qb_object_name( $qb_object ) {
