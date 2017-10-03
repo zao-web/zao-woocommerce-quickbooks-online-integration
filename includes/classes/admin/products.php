@@ -115,8 +115,8 @@ class Products extends Connected_Object_Base {
 		return __( 'Once a Quickbooks Product is associated, the WordPress data for this product will be replaced with the QuickBooks Product data. Are you sure you want to proceed?', 'zwqoi' );
 	}
 
-	protected function maybe_get_quickbook_sync_button( $qb_id ) {
-		return str_replace( '&nbsp;&nbsp;', '</p><p>', parent::maybe_get_quickbook_sync_button( $qb_id ) );
+	protected function maybe_get_quickbooks_sync_button( $qb_id ) {
+		return str_replace( '&nbsp;&nbsp;', '</p><p>', parent::maybe_get_quickbooks_sync_button( $qb_id ) );
 	}
 
 	public function text_select_result_to_associate() {

@@ -80,7 +80,7 @@ abstract class Connected_Object_Base extends Base {
 		$qb_id = $wp_object->{$this->service->meta_key};
 
 		if ( $qb_id ) {
-			echo $this->maybe_get_quickbook_sync_button( $wp_object->{$this->service->meta_key} );
+			echo $this->maybe_get_quickbooks_sync_button( $wp_object->{$this->service->meta_key} );
 		} else {
 			echo '<p>' . $this->connect_qb_button( array(
 				'search_term' => $this->service->get_wp_name( $this->wp_object ),
@@ -89,7 +89,7 @@ abstract class Connected_Object_Base extends Base {
 		}
 	}
 
-	protected function maybe_get_quickbook_sync_button( $qb_id ) {
+	protected function maybe_get_quickbooks_sync_button( $qb_id ) {
 		$qb_object = $this->service->get_by_id( $qb_id );
 		if ( ! $qb_object ) {
 			return '<p>' . sprintf( __( 'There was an issue fetching the QuickBooks object (%d) from the QuickBooks API.', 'zwqoi' ), $qb_id ) . '</p>';
