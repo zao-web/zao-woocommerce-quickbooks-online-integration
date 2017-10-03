@@ -142,6 +142,13 @@ abstract class Base extends Service {
 	}
 
 	public function get_by_id( $qb_id ) {
+		static $objects = array();
+
+		$key = get_class( $this ) . $qb_id;
+		if ( isset( $objects[ $key ] ) ) {
+			return $objects[ $key ];
+		}
+
 		global $wpdb;
 
 		$qb_id = absint( $qb_id );
@@ -149,16 +156,17 @@ abstract class Base extends Service {
 			return false;
 		}
 
-		$query = $wpdb->prepare( $this->search_query_format( 'id' ), $qb_id );
+		$query  = $wpdb->prepare( $this->search_query_format( 'id' ), $qb_id );
 		$result = $this->query( $query );
-
-		$error = $this->get_error();
+		$error  = $this->get_error();
 
 		if ( $error ) {
-			return $this->get_by_id_error( $error, $qb_id );
+			$objects[ $key ] = $this->get_by_id_error( $error, $qb_id );
+		} else {
+			$objects[ $key ] = is_array( $result ) ? end( $result ) : $result;
 		}
 
-		return is_array( $result ) ? end( $result ) : $result;
+		return $objects[ $key ];
 	}
 
 	public function query_wp_by_qb_id( $qb_id ) {
