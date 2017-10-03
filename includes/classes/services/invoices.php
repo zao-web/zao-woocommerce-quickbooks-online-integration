@@ -562,8 +562,7 @@ class Invoices extends Base {
 
 	public function get_connected_qb_id( $wp_id ) {
 		$order = $this->get_wp_object( $wp_id );
-
-		return $order && $order->get_meta( $this->meta_key );
+		return $order ? $order->get_meta( $this->meta_key ) : false;
 	}
 
 	public function disconnect_qb_object( $wp_id ) {
