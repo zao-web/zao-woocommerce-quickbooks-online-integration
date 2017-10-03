@@ -61,12 +61,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/CMB2/CMB2.git",
-                "reference": "1464c84dd1696aa29c8c7ef7641a699b625f2e7b"
+                "reference": "8f18824497925faaef50b2abdb37758aa9cc90cf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CMB2/CMB2/zipball/1464c84dd1696aa29c8c7ef7641a699b625f2e7b",
-                "reference": "1464c84dd1696aa29c8c7ef7641a699b625f2e7b",
+                "url": "https://api.github.com/repos/CMB2/CMB2/zipball/8f18824497925faaef50b2abdb37758aa9cc90cf",
+                "reference": "8f18824497925faaef50b2abdb37758aa9cc90cf",
                 "shasum": ""
             },
             "require": {
@@ -110,7 +110,7 @@
                 "plugin",
                 "wordpress"
             ],
-            "time": "2017-08-30 14:03:47"
+            "time": "2017-09-19 21:37:19"
         },
         {
             "name": "zao-web/qbo-connect",
