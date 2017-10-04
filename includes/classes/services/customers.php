@@ -1,7 +1,7 @@
 <?php
 namespace Zao\WC_QBO_Integration\Services;
 
-use QuickBooksOnline\API;
+use QuickBooksOnline\API, WP_Error;
 
 class Customers extends UI_Base {
 
@@ -234,7 +234,7 @@ class Customers extends UI_Base {
 		$user = $this->is_wp_object( $wp_id ) ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
 
 		if ( ! $user ) {
-			return new \WP_Error(
+			return new WP_Error(
 				'zwqoi_update_wp_object_with_qb_object_error',
 				sprintf( __( 'Not able to find the WordPress user with this ID: %s', 'zwqoi' ), $wp_id )
 			);
@@ -247,7 +247,7 @@ class Customers extends UI_Base {
 		}
 
 		if ( ! ( $customer instanceof API\Data\IPPCustomer ) ) {
-			return new \WP_Error(
+			return new WP_Error(
 				'zwqoi_update_wp_object_with_qb_object_error',
 				__( 'There was an error finding the Customer object.', 'zwqoi' ),
 				$customer
@@ -539,7 +539,7 @@ class Customers extends UI_Base {
 	public function found_user_error( $message_format, $link_text, \WP_User $user ) {
 		$link = $this->get_wp_edit_url( $user );
 
-		return new \WP_Error(
+		return new WP_Error(
 			'zwqoi_customer_import_error',
 			sprintf( $message_format, '<a href="' . $link . '">' . $link_text . '</a>' ),
 			$user
