@@ -5,7 +5,6 @@ use Zao\QBO_API\Service, Zao\WC_QBO_Integration\Admin\Settings;
 abstract class UI_Base extends Base {
 	protected $search_results   = null;
 	protected $results_count    = 0;
-	protected $permission_level = 'manage_options';
 	protected $admin_page_slug  = '';
 	protected $update_query_var = '';
 	protected $import_query_var = '';
@@ -61,7 +60,7 @@ abstract class UI_Base extends Base {
 		$args = array(
 			$this->text_search_page_title(),
 			$this->text_search_page_menu_title(),
-			$this->permission_level,
+			apply_filters( 'zwqoi_search_page_permission_level', 'edit_pages', $this ),
 			$this->admin_page_slug,
 			array( $this, 'search_page' ),
 		);

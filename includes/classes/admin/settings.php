@@ -150,6 +150,7 @@ class Settings extends Base {
 			'parent_slug'  => 'options-general.php',
 			'display_cb'   => array( $this, 'options_page_output' ),
 			'show_on_cb'   => array( __CLASS__, 'is_connected' ),
+			'capability'   => apply_filters( 'zwqoi_search_page_permission_level', 'edit_pages', $this ), // Cap required to view options-page.
 		) );
 
 		$this->cmb->add_field( array(
