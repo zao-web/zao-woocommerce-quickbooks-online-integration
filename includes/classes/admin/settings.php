@@ -107,10 +107,19 @@ class Settings extends Base {
 		return $links;
 	}
 
-	public function api_settings_page_url() {
+	public static function api_settings_page_url() {
 		if ( function_exists( 'qbo_connect_ui' ) && is_object( qbo_connect_ui()->settings ) ) {
 			return qbo_connect_ui()->settings->settings_url();
 		}
+	}
+
+	public static function initation_required_message() {
+		$url = self::api_settings_page_url();
+		if ( $url )  {
+			return sprintf( __( 'Please connect to your QuickBooks App on the <a href="%s">API Connect page</a>.', 'zwqoi' ), $url );
+		}
+
+		return __( 'You need to initate the Quickbooks connection.', 'zwqoi' );
 	}
 
 	public function add_help_tab() {
@@ -333,7 +342,11 @@ class Settings extends Base {
 	}
 
 	public static function fetch_query( $query ) {
-		$accounts = self::get_service()->query( $query );
+		try {
+			$accounts = self::get_service()->query( $query );
+		} catch ( \Exception $e ) {
+			$accounts = array();
+		}
 
 		if ( ! is_array( $accounts ) ) {
 			$accounts = array();

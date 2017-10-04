@@ -7,6 +7,6 @@
 			<?php submit_button( esc_attr( $hookup->cmb->prop( 'save_button' ) ), 'primary', 'submit-cmb' ); ?>
 		</form>
 	<?php else : ?>
-		<p class="warning"><?php printf( __( 'Please connect to your QuickBooks App on the <a href="%s">API Connect page</a>.', 'zwqoi' ), self::api_settings_page_url() ); ?></p>
+		<p class="warning"><?php echo self::initation_required_message(); ?></p>
 	<?php endif; ?>
 </div>

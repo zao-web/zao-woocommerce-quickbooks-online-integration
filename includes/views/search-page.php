@@ -13,7 +13,7 @@
 <div class="wrap qbo-search-wrap">
 	<?php self::admin_page_title(); ?>
 
-	<?php if ( self::$api ) { ?>
+	<?php if ( self::$api && self::company_name() ) { ?>
 		<p class="qb-company-name"><?php printf( __( 'Your company: <em>%s</em> ', 'zwqoi' ), self::company_name() ); ?></p>
 	<?php } ?>
 
@@ -21,9 +21,9 @@
 
 		<p><?php _e( 'Something went wrong. We cannot find the Quickbooks Connect UI plugin.', 'zwqoi' ); ?></p>
 
-	<?php } elseif ( ! self::$api ) { ?>
+	<?php } elseif ( ! self::$api || is_wp_error( self::$api->get_company_info() ) ) { ?>
 
-		<p><?php printf( __( 'You need to <a href="%s">initate the Quickbooks connection</a>.', 'zwqoi' ), qbo_connect_ui()->settings->settings_url() ); ?></p>
+		<p><?php echo Zao\WC_QBO_Integration\Admin\Settings::initation_required_message(); ?></p>
 
 	<?php } else { ?>
 

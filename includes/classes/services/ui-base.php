@@ -1,6 +1,6 @@
 <?php
 namespace Zao\WC_QBO_Integration\Services;
-use Zao\QBO_API\Service;
+use Zao\QBO_API\Service, Zao\WC_QBO_Integration\Admin\Settings;
 
 abstract class UI_Base extends Base {
 	protected $search_results   = null;
@@ -281,14 +281,15 @@ abstract class UI_Base extends Base {
 			);
 
 			$results = $this->query( $query );
-
-			$error = $this->get_error();
+			$error   = $this->get_error();
 
 			if ( $error ) {
 
 				$result_items[] = array(
 					'id'   => 'error',
-					'name' => $error->getOAuthHelperError(),
+					'name' => self::is_fault_handler( $error )
+						? self::fault_handler_error_output( $error )
+						: __( 'unknown', 'zwqoi' ),
 				);
 
 			} else {
@@ -309,7 +310,7 @@ abstract class UI_Base extends Base {
 		} catch ( \Exception $e ) {
 			$result_items[] = array(
 				'id'   => 'error',
-				'name' => $e->getMessage(),
+				'name' => self::check_initiation_exception_message( $e ),
 			);
 		}
 
@@ -499,6 +500,12 @@ abstract class UI_Base extends Base {
 
 	public function is_on_admin_page() {
 		return self::admin_page_matches( $this->admin_page_url() );
+	}
+
+	public static function check_initiation_exception_message( \Exception $e ) {
+		return 'Invalid Realm.' === $e->getMessage()
+			? Settings::initation_required_message()
+			: $e->getMessage();
 	}
 
 }

@@ -73,6 +73,10 @@ abstract class Base extends Service {
 	}
 
 	protected function get_error() {
+		if ( is_wp_error( self::$api->get_company_info() ) ) {
+			return false;
+		}
+
 		$error = $this->get_service()->getLastError();
 		return $error ? $error : false;
 	}
@@ -87,8 +91,10 @@ abstract class Base extends Service {
 	}
 
 	public static function company_name() {
-		if ( self::$api ) {
-			return self::get_value_from_object( self::$api->get_company_info(), array(
+		$info = self::$api->get_company_info();
+
+		if ( ! is_wp_error( $info ) ) {
+			return self::get_value_from_object( $info, array(
 				'CompanyName',
 				'LegalName',
 				'Id',
@@ -147,6 +153,10 @@ abstract class Base extends Service {
 		$key = get_class( $this ) . $qb_id;
 		if ( isset( $objects[ $key ] ) ) {
 			return $objects[ $key ];
+		}
+
+		if ( is_wp_error( self::$api->get_company_info() ) ) {
+			return $this->get_by_id_error( null, $qb_id );
 		}
 
 		global $wpdb;
