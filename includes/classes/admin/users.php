@@ -34,6 +34,14 @@ class Users extends Connected_Object_Base {
 		return __( 'Are you sure you want to disconnect the QuickBooks Customer?', 'zwqoi' );
 	}
 
+	public function text_delete_qb_object() {
+		return __( 'Delete QuickBooks Customer', 'zwqoi' );
+	}
+
+	public function text_delete_qb_object_confirm() {
+		return __( 'Are you sure you want to delete the associated QuickBooks Customer?', 'zwqoi' );
+	}
+
 	public function text_connect_qb_object() {
 		return __( 'Connect QuickBooks Customer', 'zwqoi' );
 	}

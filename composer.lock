@@ -118,12 +118,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/zao-web/quickbooks-online-connect.git",
-                "reference": "8db4bd8d0920c8a6f117b977733f97932cced1a6"
+                "reference": "8f4f2d22194ed80b7ca8cf303ee4b5d34b5aa1c6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/8db4bd8d0920c8a6f117b977733f97932cced1a6",
-                "reference": "8db4bd8d0920c8a6f117b977733f97932cced1a6",
+                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/8f4f2d22194ed80b7ca8cf303ee4b5d34b5aa1c6",
+                "reference": "8f4f2d22194ed80b7ca8cf303ee4b5d34b5aa1c6",
                 "shasum": ""
             },
             "require": {
@@ -155,7 +155,7 @@
                 "wordpress",
                 "wp-api"
             ],
-            "time": "2017-10-03 16:25:47"
+            "time": "2017-10-03 21:54:19"
         },
         {
             "name": "zao-web/qbo-connect-ui",

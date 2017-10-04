@@ -504,6 +504,35 @@ class Invoices extends Base {
 		}
 	}
 
+	public function delete_connected_qb_object( $wp_id ) {
+		$invoice_id = $this->get_connected_qb_id( $wp_id );
+		$result     = false;
+
+		if ( $invoice_id ) {
+			$invoice = $this->get_by_id( $invoice_id );
+		}
+
+		if ( ! empty( $invoice->Id ) && isset( $invoice->SyncToken ) ) {
+			$result = $this->delete_entity( $invoice );
+		}
+
+		$error = $this->get_error();
+		if ( $error ) {
+
+			$result = new WP_Error(
+				'zwqoi_invoice_delete_error',
+				sprintf( __( 'There was an error deleting the QuickBooks Invoice for this order: %d', 'zwqoi' ), $order->get_id() ),
+				$error
+			);
+		}
+
+		if ( $result && ! is_wp_error( $result ) ) {
+			$invoice_id = $this->disconnect_qb_object( $wp_id );
+		}
+
+		return $result;
+	}
+
 	public function update_connected_qb_id( $wp_id, $meta_value ) {
 		$order = $this->get_wp_object( $wp_id );
 		if ( ! $order ) {

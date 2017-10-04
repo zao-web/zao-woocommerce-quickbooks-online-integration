@@ -9,6 +9,7 @@ abstract class Connected_Object_Base extends Base {
 	protected $service;
 	protected $wp_object = null;
 	protected $disconnect_query_var = '';
+	protected $delete_query_var = '';
 	protected $connect_query_var = '';
 	protected $connect_nonce_query_var = '';
 	protected $id_query_var = '';
@@ -44,6 +45,8 @@ abstract class Connected_Object_Base extends Base {
 	abstract public function text_search_to_connect();
 	abstract public function text_disconnect_qb_object();
 	abstract public function text_disconnect_qb_object_confirm();
+	abstract public function text_delete_qb_object();
+	abstract public function text_delete_qb_object_confirm();
 	abstract public function text_connect_qb_object();
 	abstract public function text_connect_qb_object_confirm();
 	abstract public function text_select_result_to_associate();
@@ -60,10 +63,10 @@ abstract class Connected_Object_Base extends Base {
 		);
 	}
 
-	protected function notice( $message, $query_var ) {
+	protected function notice( $message, $query_var, $message_type = 'updated' ) {
 		$query_val = self::_param( $query_var );
 		?>
-		<div id="message" class="updated notice is-dismissible">
+		<div id="message" class="<?php echo $message_type; ?> notice is-dismissible">
 			<?php echo wpautop( $message ); ?>
 		</div>
 
@@ -116,6 +119,15 @@ abstract class Connected_Object_Base extends Base {
 		$output .= '</p>';
 
 		return $output;
+	}
+
+	protected function maybe_get_quickbooks_delete_button( $qb_id ) {
+		$qb_object = $this->service->get_by_id( $qb_id );
+		if ( ! $qb_object ) {
+			return false;
+		}
+
+		return '<p>' . $this->delete_quickbooks_object_button() . '</p>';
 	}
 
 	public function maybe_redirect_back() {
@@ -186,11 +198,19 @@ abstract class Connected_Object_Base extends Base {
 	 */
 
 	public function disconnect_quickbooks_wp_button() {
-		return '<a class="button-secondary button-link-delete disconnect-qb-customer" onclick="return confirm(\'' . esc_attr( $this->get_text( 'disconnect_qb_object_confirm' ) ) . '\')" href="' . esc_url( $this->disconnect_qb_from_wp_object_url() ) . '">' . $this->get_text( 'disconnect_qb_object' ) . '</a>';
+		return '<a class="button-secondary button-link-delete disconnect-qb-object" onclick="return confirm(\'' . esc_attr( $this->get_text( 'disconnect_qb_object_confirm' ) ) . '\')" href="' . esc_url( $this->disconnect_qb_from_wp_object_url() ) . '">' . $this->get_text( 'disconnect_qb_object' ) . '</a>';
 	}
 
 	public function disconnect_qb_from_wp_object_url() {
 		return wp_nonce_url( $this->service->get_wp_edit_url( $this->wp_object ), get_class( $this ), $this->disconnect_query_var );
+	}
+
+	public function delete_quickbooks_object_button() {
+		return '<a class="button-secondary button-link-delete delete-qb-object" onclick="return confirm(\'' . esc_attr( $this->get_text( 'delete_qb_object_confirm' ) ) . '\')" href="' . esc_url( $this->delete_qb_object_url() ) . '">' . $this->get_text( 'delete_qb_object' ) . '</a>';
+	}
+
+	public function delete_qb_object_url() {
+		return wp_nonce_url( $this->service->get_wp_edit_url( $this->wp_object ), get_class( $this ), $this->delete_query_var );
 	}
 
 	public function connect_qb_button( $query_args = array() ) {
@@ -220,6 +240,27 @@ abstract class Connected_Object_Base extends Base {
 
 		if ( null === $this->wp_object ) {
 			$this->wp_object = $this->service->get_wp_object( absint( self::_param( $this->connect_query_var ) ) );
+		}
+
+		if ( ! $this->wp_object || is_wp_error( $this->wp_object ) ) {
+			return false;
+		}
+
+		return $this->wp_object;
+	}
+
+	public function is_deleting() {
+		if (
+			! $this->delete_query_var
+			|| ! self::_param( $this->delete_query_var )
+			|| ! wp_verify_nonce( self::_param( $this->delete_query_var ), get_class( $this ) )
+		) {
+			return false;
+		}
+
+		if ( null === $this->wp_object ) {
+			$post_id = absint( self::_param( 'post' ) );
+			$this->wp_object = $post_id ? $this->service->get_wp_object( $post_id ) : null;
 		}
 
 		if ( ! $this->wp_object || is_wp_error( $this->wp_object ) ) {

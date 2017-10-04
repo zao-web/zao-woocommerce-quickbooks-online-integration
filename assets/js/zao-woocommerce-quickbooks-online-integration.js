@@ -1,11 +1,6 @@
-/**
- * Zao WooCommerce QuickBooks Online Integration
+/*! Zao WooCommerce QuickBooks Online Integration - v0.1.0
  * https://zao.is
- *
- * Copyright (c) 2017 Zao
- * Licensed under the GPL-2.0+ license.
- */
-
+ * Copyright (c) 2017; * Licensed GPL-2.0+ */
 window.ZWQOI = window.ZWQOI || {};
 
 ( function( window, document, $, app, undefined ) {
