@@ -148,6 +148,8 @@ class Products extends UI_Base {
 		$item_name = self::get_item_name( $item, false );
 		$price     = wc_clean( self::get_value_from_object( $item, 'UnitPrice', '' ) );
 
+		// wp_validate_boolean() used because https://media3.giphy.com/media/3o6ZtiNLwYmOMkdZQs/giphy-downsized.gif
+
 		$props = wp_parse_args( $args, array(
 			'sku'           => wc_clean( self::get_value_from_object( $item, 'Sku', '' ) ),
 			'description'   => wc_clean( self::get_value_from_object( $item, 'Description', '' ) ),
