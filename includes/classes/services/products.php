@@ -110,7 +110,15 @@ class Products extends UI_Base {
 	}
 
 	protected function import_qb_object( $qb_object ) {
-		return new WC_Product();
+		$item_name = self::get_item_name( $qb_object, false );
+
+		$wc_product = new WC_Product();
+		$wc_product->set_props( array(
+			'name' => wc_clean( $item_name ),
+			'slug' => wc_clean( $item_name ),
+		) );
+
+		return $wc_product;
 	}
 
 	public function update_wp_object_with_qb_object( $wp_id, $qb_id, $args = array() ) {
@@ -141,8 +149,6 @@ class Products extends UI_Base {
 		$price     = wc_clean( self::get_value_from_object( $item, 'UnitPrice', '' ) );
 
 		$props = wp_parse_args( $args, array(
-			'name'          => wc_clean( $item_name ),
-			'slug'          => wc_clean( $item_name ),
 			'sku'           => wc_clean( self::get_value_from_object( $item, 'Sku', '' ) ),
 			'description'   => wc_clean( self::get_value_from_object( $item, 'Description', '' ) ),
 			'status'        => parent::item_value_truthy( $item->Active ) ? 'publish' : 'pending',
