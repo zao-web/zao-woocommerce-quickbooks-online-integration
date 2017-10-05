@@ -59,7 +59,7 @@ class Customers extends UI_Base {
 			);
 		}
 
-		if ( parent::item_value_truthy( $qb_object->PrimaryEmailAddr->Address ) ) {
+		if ( wp_validate_boolean( $qb_object->PrimaryEmailAddr->Address ) ) {
 			$user = get_user_by( 'email', $qb_object->PrimaryEmailAddr->Address );
 			if ( $user ) {
 				return $this->found_user_error(
@@ -90,7 +90,7 @@ class Customers extends UI_Base {
 		$company_name = self::get_customer_company_name( $qb_object, false );
 		$company_slug = preg_replace( '/\s+/', '', sanitize_user( $company_name, true ) );
 
-		$email = parent::item_value_truthy( $qb_object->PrimaryEmailAddr->Address )
+		$email = wp_validate_boolean( $qb_object->PrimaryEmailAddr->Address )
 			? sanitize_text_field( $qb_object->PrimaryEmailAddr->Address )
 			: $company_slug . '@example.com';
 
@@ -258,18 +258,18 @@ class Customers extends UI_Base {
 
 		$args = wp_parse_args( $args, array(
 			'ID'            => $user->ID,
-			'user_nicename' => parent::item_value_truthy( $customer->CompanyName ) ? $customer->CompanyName : $company_name,
-			'display_name'  => parent::item_value_truthy( $customer->DisplayName ) ? $customer->DisplayName : $company_name,
-			'nickname'      => parent::item_value_truthy( $customer->AltContactName ) ? $customer->AltContactName : $company_name,
-			'first_name'    => parent::item_value_truthy( $customer->GivenName ) ? $customer->GivenName : $company_name,
+			'user_nicename' => wp_validate_boolean( $customer->CompanyName ) ? $customer->CompanyName : $company_name,
+			'display_name'  => wp_validate_boolean( $customer->DisplayName ) ? $customer->DisplayName : $company_name,
+			'nickname'      => wp_validate_boolean( $customer->AltContactName ) ? $customer->AltContactName : $company_name,
+			'first_name'    => wp_validate_boolean( $customer->GivenName ) ? $customer->GivenName : $company_name,
 			'company'       => $company_name,
 		) );
 
-		if ( parent::item_value_truthy( $customer->WebAddr ) ) {
+		if ( wp_validate_boolean( $customer->WebAddr ) ) {
 			$args['user_url'] = sanitize_text_field( $customer->WebAddr->URI );
 		}
 
-		if ( parent::item_value_truthy( $customer->PrimaryEmailAddr->Address ) ) {
+		if ( wp_validate_boolean( $customer->PrimaryEmailAddr->Address ) ) {
 			$email = self::parse_email( $customer->PrimaryEmailAddr->Address );
 
 			if ( $email ) {
@@ -277,11 +277,11 @@ class Customers extends UI_Base {
 			}
 		}
 
-		if ( parent::item_value_truthy( $customer->Notes ) ) {
+		if ( wp_validate_boolean( $customer->Notes ) ) {
 			$args['description'] = sanitize_text_field( $customer->Notes );
 		}
 
-		if ( parent::item_value_truthy( $customer->FamilyName ) ) {
+		if ( wp_validate_boolean( $customer->FamilyName ) ) {
 			$args['last_name'] = sanitize_text_field( $customer->FamilyName );
 		}
 
@@ -327,21 +327,21 @@ class Customers extends UI_Base {
 			if ( ! empty( $user_args[ $part ] ) ) {
 				call_user_func( array( $wc_user, "set_billing_$cb" ), $user_args[ $part ] );
 
-				if ( parent::item_value_truthy( $customer->ShipAddr ) && is_callable( array( $wc_user, "set_shipping_$cb" ) ) ) {
+				if ( wp_validate_boolean( $customer->ShipAddr ) && is_callable( array( $wc_user, "set_shipping_$cb" ) ) ) {
 					call_user_func( array( $wc_user, "set_shipping_$cb" ), $user_args[ $part ] );
 				}
 			}
 		}
 
-		if ( parent::item_value_truthy( $customer->BillAddr ) ) {
+		if ( wp_validate_boolean( $customer->BillAddr ) ) {
 			self::map_customer_address_fields( $wc_user, $customer->BillAddr, 'billing' );
 		}
 
-		if ( parent::item_value_truthy( $customer->ShipAddr ) ) {
+		if ( wp_validate_boolean( $customer->ShipAddr ) ) {
 			self::map_customer_address_fields( $wc_user, $customer->ShipAddr, 'shipping' );
 		}
 
-		if ( parent::item_value_truthy( $customer->PrimaryPhone->FreeFormNumber ) ) {
+		if ( wp_validate_boolean( $customer->PrimaryPhone->FreeFormNumber ) ) {
 			$wc_user->set_billing_phone( $customer->PrimaryPhone->FreeFormNumber );
 		}
 
@@ -356,14 +356,14 @@ class Customers extends UI_Base {
 			'PostalCode'             => "set_{$woo_address_type}_postcode",
 		);
 		foreach ( $address_parts as $part => $cb ) {
-			if ( parent::item_value_truthy( $address->{$part} ) ) {
+			if ( wp_validate_boolean( $address->{$part} ) ) {
 				call_user_func( array( $wc_user, $cb ), $address->{$part} );
 			}
 		}
 
 		$addr_2 = '';
 		foreach ( array( 'Line2', 'Line3', 'Line4', 'Line5', ) as $part ) {
-			if ( parent::item_value_truthy( $address->{$part} ) ) {
+			if ( wp_validate_boolean( $address->{$part} ) ) {
 				$addr_2 .= $address->{$part};
 			}
 		}
@@ -372,11 +372,11 @@ class Customers extends UI_Base {
 			call_user_func( array( $wc_user, "set_{$woo_address_type}_address_2" ), $addr_2 );
 		}
 
-		if ( parent::item_value_truthy( $address->CountrySubDivisionCode ) ) {
+		if ( wp_validate_boolean( $address->CountrySubDivisionCode ) ) {
 
 			$state = $address->CountrySubDivisionCode;
 
-			$countrycode = parent::item_value_truthy( $address->CountryCode ) ? $address->CountryCode : 'US';
+			$countrycode = wp_validate_boolean( $address->CountryCode ) ? $address->CountryCode : 'US';
 			$states = WC()->countries->get_states( $countrycode );
 
 			if ( isset( $states[ $state ] ) ) {

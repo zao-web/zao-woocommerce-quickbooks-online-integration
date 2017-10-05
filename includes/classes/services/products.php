@@ -151,11 +151,11 @@ class Products extends UI_Base {
 		$props = wp_parse_args( $args, array(
 			'sku'           => wc_clean( self::get_value_from_object( $item, 'Sku', '' ) ),
 			'description'   => wc_clean( self::get_value_from_object( $item, 'Description', '' ) ),
-			'status'        => parent::item_value_truthy( $item->Active ) ? 'publish' : 'pending',
-			'tax_status'    => parent::item_value_truthy( $item->Taxable ) ? 'taxable' : 'none',
+			'status'        => wp_validate_boolean( $item->Active ) ? 'publish' : 'pending',
+			'tax_status'    => wp_validate_boolean( $item->Taxable ) ? 'taxable' : 'none',
 			'price'         => $price,
 			'regular_price' => $price,
-			'manage_stock'  => parent::item_value_truthy( $item->TrackQtyOnHand ),
+			'manage_stock'  => wp_validate_boolean( $item->TrackQtyOnHand ),
 		) );
 
 		$wc_product->set_props( apply_filters( 'zwqoi_qb_product_props', $props, $item, $wc_product ) );
