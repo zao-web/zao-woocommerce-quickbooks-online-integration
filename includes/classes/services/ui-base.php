@@ -32,7 +32,7 @@ abstract class UI_Base extends Base {
 	abstract public function admin_page_url();
 	abstract public function validate_qb_object( $qb_id, $force = false );
 	abstract protected function import_qb_object( $qb_object );
-	abstract public function update_wp_object_with_qb_object( $wp_id, $qb_object );
+	abstract public function update_wp_object_with_qb_object( $wp_id, $qb_id, $args = array() );
 
 	public function init() {
 		add_action( 'admin_menu', array( $this, 'register_qb_search_page' ), 999 );

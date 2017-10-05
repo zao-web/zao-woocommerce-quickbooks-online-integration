@@ -230,7 +230,7 @@ class Customers extends UI_Base {
 		return $args;
 	}
 
-	public function update_wp_object_with_qb_object( $wp_id, $qb_id ) {
+	public function update_wp_object_with_qb_object( $wp_id, $qb_id, $args = array() ) {
 		$user = $this->is_wp_object( $wp_id ) ? $wp_id : get_user_by( 'id', absint( $wp_id ) );
 
 		if ( ! $user ) {
@@ -256,14 +256,14 @@ class Customers extends UI_Base {
 
 		$company_name = self::get_customer_company_name( $customer, false );
 
-		$args = array(
+		$args = wp_parse_args( $args, array(
 			'ID'            => $user->ID,
 			'user_nicename' => ! empty( $customer->CompanyName ) ? $customer->CompanyName : $company_name,
 			'display_name'  => ! empty( $customer->DisplayName ) ? $customer->DisplayName : $company_name,
 			'nickname'      => ! empty( $customer->AltContactName ) ? $customer->AltContactName : $company_name,
 			'first_name'    => ! empty( $customer->GivenName ) ? $customer->GivenName : $company_name,
 			'company'       => $company_name,
-		);
+		) );
 
 		if ( ! empty( $customer->WebAddr ) ) {
 			$args['user_url'] = sanitize_text_field( $customer->WebAddr->URI );

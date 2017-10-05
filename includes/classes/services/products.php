@@ -113,7 +113,7 @@ class Products extends UI_Base {
 		return new WC_Product();
 	}
 
-	public function update_wp_object_with_qb_object( $wp_id, $qb_id ) {
+	public function update_wp_object_with_qb_object( $wp_id, $qb_id, $args = array() ) {
 		$wc_product = $this->get_product( $wp_id );
 
 		if ( ! $wc_product ) {
@@ -139,7 +139,7 @@ class Products extends UI_Base {
 
 		$item_name = self::get_item_name( $item, false );
 
-		$props = array(
+		$props = wp_parse_args( $args, array(
 			'name'         => wc_clean( $item_name ),
 			'slug'         => wc_clean( $item_name ),
 			'sku'          => wc_clean( self::get_value_from_object( $item, 'Sku', '' ) ),
@@ -148,7 +148,7 @@ class Products extends UI_Base {
 			'tax_status'   => ! empty( $item->Taxable ) ? 'taxable' : 'none',
 			'price'        => wc_clean( self::get_value_from_object( $item, 'UnitPrice', '' ) ),
 			'manage_stock' => !! $item->TrackQtyOnHand,
-		);
+		) );
 
 		$props['regular_price'] = $props['price'];
 
