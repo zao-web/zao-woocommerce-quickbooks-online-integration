@@ -158,7 +158,7 @@ class Products extends UI_Base {
 			'manage_stock'  => parent::item_value_truthy( $item->TrackQtyOnHand ),
 		) );
 
-		$wc_product->set_props( $props );
+		$wc_product->set_props( apply_filters( 'zwqoi_qb_product_props', $props, $item, $wc_product ) );
 
 		if ( $props['manage_stock'] && isset( $item->QtyOnHand ) ) {
 			$wc_product->set_stock_quantity( absint( $item->QtyOnHand ) );

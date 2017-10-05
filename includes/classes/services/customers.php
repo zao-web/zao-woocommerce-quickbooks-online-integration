@@ -285,6 +285,8 @@ class Customers extends UI_Base {
 			$args['last_name'] = sanitize_text_field( $customer->FamilyName );
 		}
 
+		$args = apply_filters( 'zwqoi_qb_customer_args', $props, $item, $wc_product );
+
 		// Update woo first or else the display_name gets improperly overwritten.
 		$this->update_woo_customer( $user->ID, $args, $customer );
 
