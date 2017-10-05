@@ -138,19 +138,19 @@ class Products extends UI_Base {
 		}
 
 		$item_name = self::get_item_name( $item, false );
+		$price     = wc_clean( self::get_value_from_object( $item, 'UnitPrice', '' ) );
 
 		$props = wp_parse_args( $args, array(
-			'name'         => wc_clean( $item_name ),
-			'slug'         => wc_clean( $item_name ),
-			'sku'          => wc_clean( self::get_value_from_object( $item, 'Sku', '' ) ),
-			'description'  => wc_clean( self::get_value_from_object( $item, 'Description', '' ) ),
-			'status'       => ! empty( $item->Active ) ? 'publish' : 'pending',
-			'tax_status'   => ! empty( $item->Taxable ) ? 'taxable' : 'none',
-			'price'        => wc_clean( self::get_value_from_object( $item, 'UnitPrice', '' ) ),
-			'manage_stock' => !! $item->TrackQtyOnHand,
+			'name'          => wc_clean( $item_name ),
+			'slug'          => wc_clean( $item_name ),
+			'sku'           => wc_clean( self::get_value_from_object( $item, 'Sku', '' ) ),
+			'description'   => wc_clean( self::get_value_from_object( $item, 'Description', '' ) ),
+			'status'        => parent::item_value_truthy( $item->Active ) ? 'publish' : 'pending',
+			'tax_status'    => parent::item_value_truthy( $item->Taxable ) ? 'taxable' : 'none',
+			'price'         => $price,
+			'regular_price' => $price,
+			'manage_stock'  => parent::item_value_truthy( $item->TrackQtyOnHand ),
 		) );
-
-		$props['regular_price'] = $props['price'];
 
 		$wc_product->set_props( $props );
 

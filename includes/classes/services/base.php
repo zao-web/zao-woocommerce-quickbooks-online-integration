@@ -147,6 +147,10 @@ abstract class Base extends Service {
 		return $error instanceof API\Core\HttpClients\FaultHandler;
 	}
 
+	public static function item_value_truthy( $value ) {
+		return ! empty( $value ) && 'false' !== $value;
+	}
+
 	public function get_by_id( $qb_id ) {
 		static $objects = array();
 
