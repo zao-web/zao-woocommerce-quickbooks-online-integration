@@ -507,30 +507,41 @@ class Invoices extends Base {
 	public function delete_connected_qb_object( $wp_id ) {
 		$invoice_id = $this->get_connected_qb_id( $wp_id );
 		$result     = false;
+		$invoice    = false;
 
 		if ( $invoice_id ) {
 			$invoice = $this->get_by_id( $invoice_id );
 		}
 
-		if ( ! empty( $invoice->Id ) && isset( $invoice->SyncToken ) ) {
+		if ( $error = $this->get_error() ) {
+			return self::invoice_delete_error( __LINE__, $invoice_id, $order->get_id(), $error );
+		}
+
+		if ( empty( $invoice->Id ) || ! isset( $invoice->SyncToken ) ) {
+			return self::invoice_delete_error( __LINE__, $invoice_id, $order->get_id(), $invoice );
+		}
+
+		if ( isset( $invoice->SyncToken ) ) {
 			$result = $this->delete_entity( $invoice );
 		}
 
-		$error = $this->get_error();
-		if ( $error ) {
-
-			$result = new WP_Error(
-				'zwqoi_invoice_delete_error',
-				sprintf( __( 'There was an error deleting the QuickBooks Invoice for this order: %d', 'zwqoi' ), $order->get_id() ),
-				$error
-			);
+		if ( $error = $this->get_error() ) {
+			return self::invoice_delete_error( __LINE__, $invoice_id, $order->get_id(), $error );
 		}
 
 		if ( $result && ! is_wp_error( $result ) ) {
-			$invoice_id = $this->disconnect_qb_object( $wp_id );
+			$this->disconnect_qb_object( $wp_id );
 		}
 
 		return $result;
+	}
+
+	protected static function invoice_delete_error( $line, $invoice_id, $order_id, $data = null ) {
+		return new WP_Error(
+			"zwqoi_invoice_delete_error_$line",
+			sprintf( __( 'There was an error deleting the QuickBooks Invoice (%s) for this order: %d', 'zwqoi' ), $invoice_id, $order_id ),
+			$data
+		);
 	}
 
 	public function update_connected_qb_id( $wp_id, $meta_value ) {
