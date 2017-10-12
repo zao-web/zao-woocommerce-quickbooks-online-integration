@@ -68,6 +68,10 @@ class Invoices extends Base {
 	}
 
 	public function maybe_sync_invoice( $order_id ) {
+		if ( ! apply_filters( 'zwqoi_create_invoice_from_order', true, $order_id ) ) {
+			return false;
+		}
+
 		$order      = $this->get_wp_object( $order_id );
 		$invoice_id = $this->get_connected_qb_id( $order_id );
 		$invoice    = null;
