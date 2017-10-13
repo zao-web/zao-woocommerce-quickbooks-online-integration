@@ -325,12 +325,14 @@ class Invoices extends Base {
 		$product = $parent = $item->get_product();
 		$is_variation = 'variation' === $product->get_type();
 
+		$price = $product->get_price();
+		$price = $price && is_string( $price ) && false !== strpos( '.', $price ) ? floatval( $price ) : absint( $price );
 		$line = array(
 			'Description'         => $item->get_name(),
 			'Amount'              => floatval( number_format( $item->get_total(), 2, '.', '' ) ),
 			'DetailType'          => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
-				'UnitPrice' => number_format( $product->get_price(), 2, '.', '' ),
+				'UnitPrice' => number_format( $price, 2, '.', '' ),
 				'Qty'       => intval( max( 1, $item->get_quantity() ) ),
 			),
 		);
