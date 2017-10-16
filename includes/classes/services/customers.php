@@ -55,7 +55,8 @@ class Customers extends UI_Base {
 			return $this->found_user_error(
 				__( 'A user has already been mapped to this QuickBooks Customer: %s', 'zwqoi' ),
 				$company_name,
-				$user
+				$user,
+				$qb_object->Id
 			);
 		}
 
@@ -65,7 +66,8 @@ class Customers extends UI_Base {
 				return $this->found_user_error(
 					__( 'A user already exists with this email: %s', 'zwqoi' ),
 					$qb_object->PrimaryEmailAddr->Address,
-					$user
+					$user,
+					$qb_object->Id
 				);
 			}
 		}
@@ -78,7 +80,8 @@ class Customers extends UI_Base {
 				return $this->found_user_error(
 					__( 'A user already exists with this username: %s', 'zwqoi' ),
 					$company_slug,
-					$user
+					$user,
+					$qb_object->Id
 				);
 			}
 		}
@@ -538,11 +541,11 @@ class Customers extends UI_Base {
 		return get_user_meta( $wp_id, $this->meta_key, true );
 	}
 
-	public function found_user_error( $message_format, $link_text, \WP_User $user ) {
+	public function found_user_error( $message_format, $link_text, \WP_User $user, $qb_id ) {
 		$link = $this->get_wp_edit_url( $user );
 
 		return new WP_Error(
-			'zwqoi_customer_import_error',
+			'zwqoi_customer_import_error_' . sanitize_text_field( $qb_id ),
 			sprintf( $message_format, '<a href="' . $link . '">' . $link_text . '</a>' ),
 			$user
 		);

@@ -167,6 +167,7 @@ abstract class UI_Base extends Base {
 	public function get_error_message_from_result( $result ) {
 		$error    = $result->get_error_data();
 		$message  = $result->get_error_message();
+		$code     = $result->get_error_code();
 		$err_type = 'error';
 
 		if ( self::is_fault_handler( $error ) ) {
@@ -174,7 +175,19 @@ abstract class UI_Base extends Base {
 		}
 
 		if ( $this->is_wp_object( $error ) ) {
-			$qb_id    = absint( self::_param( $this->import_query_var ) );
+			$qb_id = self::_param( $this->import_query_var );
+
+			if ( ! $qb_id || is_array( $qb_id ) ) {
+				$qb_id = 0;
+
+				$parts = explode( '_import_error_', $code );
+				if ( isset( $parts[1] ) && is_numeric( $parts[1] ) ) {
+					$qb_id = $parts[1];
+				}
+			}
+
+			$qb_id = absint( $qb_id );
+
 			$err_type = 'notice-warning';
 			$message  .= '<span class="qb-import-button-wrap">' . $this->update_from_qb_button( $error->ID, $qb_id );
 			$message  .= ' or ' . $this->force_import_from_qb_button( $qb_id, true ) . "</span>\n";

@@ -89,7 +89,8 @@ class Products extends UI_Base {
 			return $this->found_product_error(
 				__( 'A product has already been mapped to this QuickBooks Product: %s', 'zwqoi' ),
 				$item_name,
-				$product
+				$product,
+				$qb_object->Id
 			);
 		}
 
@@ -101,7 +102,8 @@ class Products extends UI_Base {
 				return $this->found_product_error(
 					__( 'A product already exists with this slug: %s', 'zwqoi' ),
 					$slug,
-					$product
+					$product,
+					$qb_object->Id
 				);
 			}
 		}
@@ -430,11 +432,11 @@ class Products extends UI_Base {
 		}
 	}
 
-	public function found_product_error( $message_format, $link_text, WP_Post $product ) {
+	public function found_product_error( $message_format, $link_text, WP_Post $product, $qb_id ) {
 		$link = $this->get_wp_object_edit_link( $product, $link_text );
 
 		return new WP_Error(
-			'zwqoi_product_import_error',
+			'zwqoi_product_import_error_' . sanitize_text_field( $qb_id ),
 			sprintf( $message_format, $link ),
 			$product
 		);
