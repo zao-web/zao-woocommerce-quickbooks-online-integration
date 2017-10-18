@@ -155,7 +155,7 @@ abstract class Base extends Service {
 			return $objects[ $key ];
 		}
 
-		if ( is_wp_error( self::$api->get_company_info() ) ) {
+		if ( ! is_object( self::$api ) || is_wp_error( self::$api->get_company_info() ) ) {
 			return $this->get_by_id_error( null, $qb_id );
 		}
 
