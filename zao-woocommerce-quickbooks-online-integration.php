@@ -45,10 +45,9 @@ define( 'ZWQOI_INC',      ZWQOI_PATH . 'includes/' );
 // Include files
 require_once ZWQOI_INC . 'functions/core.php';
 
-
 // Activation/Deactivation
-register_activation_hook( __FILE__, '\Zao\WC_QBO_Integration\Core\activate' );
-register_deactivation_hook( __FILE__, '\Zao\WC_QBO_Integration\Core\deactivate' );
+register_activation_hook( __FILE__, '\Zao\WC_QBO_Integration\activate' );
+register_deactivation_hook( __FILE__, '\Zao\WC_QBO_Integration\deactivate' );
 
 // Bootstrap
 Zao\WC_QBO_Integration\setup();
