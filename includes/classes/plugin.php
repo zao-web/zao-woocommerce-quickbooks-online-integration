@@ -36,7 +36,7 @@ class Plugin extends Base {
 	}
 
 	public function init() {
-		add_action( 'qbo_connect_initiated', array( $this, 'api_init' ) );
+		add_action( 'qbo_connect_initiated', array( __NAMESPACE__ . '\\Services\\Base', 'set_api' ) );
 		$this->customers->init();
 		$this->products->init();
 		$this->invoices->init();
@@ -44,10 +44,6 @@ class Plugin extends Base {
 		$this->wc_products->init();
 		$this->wc_orders->init();
 		$this->settings->init();
-	}
-
-	public function api_init( $api ) {
-		Services\Base::set_api( $api );
 	}
 
 }
