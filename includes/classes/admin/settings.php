@@ -3,12 +3,18 @@ namespace Zao\WC_QBO_Integration\Admin;
 use Zao\WC_QBO_Integration\Base;
 use Zao\WC_QBO_Integration\Plugin;
 use Zao\WC_QBO_Integration\Services\Base as Services;
+use Zao\WC_QBO_Integration\Services\Invoices;
 
 class Settings extends Base {
 	const KEY = 'zwqoi_options';
 
 	protected $cmb;
+	protected $invoices;
 	protected $is_active = false;
+
+	public function __construct( Invoices $invoices ) {
+		$this->invoices = $invoices;
+	}
 
 	public function init() {
 		add_action( 'cmb2_admin_init', array( $this, 'register_theme_options_metabox' ) );
@@ -24,7 +30,7 @@ class Settings extends Base {
 		add_filter( 'zwqoi_role_for_customer_user', array( __CLASS__, 'maybe_set_wholesaler_role' ) );
 		add_action( 'zwqoi_new_product_from_quickbooks', array( __CLASS__, 'maybe_set_wholesale_category' ) );
 		add_filter( 'zwoowh_set_wholesale_users_args', array( __CLASS__, 'maybe_limit_wholesalers_to_customers' ) );
-		add_filter( 'zwqoi_create_invoice_from_order', array( $this, 'maybe_only_generate_invoices_for_wholesale_orders' ), 10, 2 );
+		add_filter( 'zwqoi_create_invoice_from_order', array( $this, 'maybe_only_generate_invoices_for_wholesale_orders' ), 5, 2 );
 
 		if ( function_exists( 'qbo_connect_ui' ) && is_object( qbo_connect_ui()->settings ) ) {
 			add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_connect_link' ), 20 );
@@ -161,6 +167,13 @@ class Settings extends Base {
 		) );
 
 		$this->cmb->add_field( array(
+			'name'       => __( 'Enable invoice creation for every order', 'zwqoi' ),
+			'after'       => '<p class="cmb2-metabox-description">' . __( 'If enabled, all orders will generate a corresponding QuickBooks Invoice, and auto-create an associated QuickBooks Customer from the order customer.', 'zwqoi' )  . '</p><p>' . __( '<strong>WARNING:</strong> this could cause severe performance bottlenecks for stores with heavy order-volume. It is only recommended you check this if you have a low order-volume store.', 'zwqoi' )  . '</p><p class="cmb2-metabox-description">' . __( 'It is instead recommended to use the <code>zwqoi_create_invoice_from_order</code> filter to conditionally enable on a per order basis.', 'zwqoi' )  . '</p>',
+			'id'         => 'invoice_all_orders',
+			'type'       => 'checkbox',
+		) );
+
+		$this->cmb->add_field( array(
 			// Only show this field if it is necessary.. if there is more than one account in this category.
 			'show_on_cb' => array( $this, 'field_has_multiple_type_accounts' ),
 			'id'         => 'inventory_asset_account',
@@ -224,12 +237,11 @@ class Settings extends Base {
 
 		$this->cmb->add_field( array(
 			'show_on_cb' => array( __CLASS__, 'has_wholesale_plugin' ),
-			'name'       => __( 'Disable invoice creation for non-wholesale orders.', 'zwqoi' ),
-			'desc'       => __( 'By default, all orders will generate a corresponding QuickBooks Invoice, and auto-create an associated QuickBooks Customer from the order customer.', 'zwqoi' ),
+			'name'       => __( 'Enable invoice creation for wholesale orders only', 'zwqoi' ),
+			'desc'       => __( 'Overrides the "Enable invoice creation for every order" setting above.', 'zwqoi' ),
 			'id'         => 'disable_non_wholesale_invoices',
 			'type'       => 'checkbox',
 		) );
-
 	}
 
 	public static function get_accounts() {
@@ -421,13 +433,23 @@ class Settings extends Base {
 	}
 
 	public function maybe_only_generate_invoices_for_wholesale_orders( $should_create_invoice, $order_id ) {
-		if ( self::has_wholesale_plugin() && self::get_option( 'disable_non_wholesale_invoices' ) ) {
-			$should_create_invoice = false;
+		$should_create_invoice = (bool) self::get_option( 'invoice_all_orders' );
 
-			$order = wc_get_order( $order_id );
+		if ( self::has_wholesale_plugin() ) {
+			if ( self::get_option( 'disable_non_wholesale_invoices' ) ) {
+				$should_create_invoice = false;
 
-			if ( $order ) {
-				$should_create_invoice = !! $order->get_meta( 'is_wholesale_order' );
+				$order = wc_get_order( $order_id );
+
+				if ( $order ) {
+					$should_create_invoice = (bool) $order->get_meta( 'is_wholesale_order' );
+				}
+			}
+
+		} else {
+			// Allow invoice for orders which are already connected.
+			if ( $this->invoices->get_connected_qb_id( $order_id ) ) {
+				$should_create_invoice = true;
 			}
 		}
 

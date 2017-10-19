@@ -32,7 +32,7 @@ class Plugin extends Base {
 		$this->users = new Admin\Users( $this->customers );
 		$this->wc_products = new Admin\Products( $this->products );
 		$this->wc_orders = new Admin\Orders( $this->invoices );
-		$this->settings = new Admin\Settings();
+		$this->settings = new Admin\Settings( $this->invoices );
 	}
 
 	public function init() {
