@@ -61,12 +61,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/CMB2/CMB2.git",
-                "reference": "8f18824497925faaef50b2abdb37758aa9cc90cf"
+                "reference": "1292c43bc5ed3eef80878c139251f27904c039ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CMB2/CMB2/zipball/8f18824497925faaef50b2abdb37758aa9cc90cf",
-                "reference": "8f18824497925faaef50b2abdb37758aa9cc90cf",
+                "url": "https://api.github.com/repos/CMB2/CMB2/zipball/1292c43bc5ed3eef80878c139251f27904c039ee",
+                "reference": "1292c43bc5ed3eef80878c139251f27904c039ee",
                 "shasum": ""
             },
             "require": {
@@ -110,7 +110,7 @@
                 "plugin",
                 "wordpress"
             ],
-            "time": "2017-09-19 21:37:19"
+            "time": "2017-10-06 14:33:05"
         },
         {
             "name": "zao-web/qbo-connect",
@@ -118,12 +118,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/zao-web/quickbooks-online-connect.git",
-                "reference": "8c57f729312dc182f86eca2e5687f5d449b23523"
+                "reference": "92e9848fcadb2d5f50d6ce134ba2a94e5b4e9ec9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/8c57f729312dc182f86eca2e5687f5d449b23523",
-                "reference": "8c57f729312dc182f86eca2e5687f5d449b23523",
+                "url": "https://api.github.com/repos/zao-web/quickbooks-online-connect/zipball/92e9848fcadb2d5f50d6ce134ba2a94e5b4e9ec9",
+                "reference": "92e9848fcadb2d5f50d6ce134ba2a94e5b4e9ec9",
                 "shasum": ""
             },
             "require": {
@@ -155,7 +155,7 @@
                 "wordpress",
                 "wp-api"
             ],
-            "time": "2017-10-04 18:22:19"
+            "time": "2017-10-19 17:26:27"
         },
         {
             "name": "zao-web/qbo-connect-ui",

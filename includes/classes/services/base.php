@@ -35,10 +35,16 @@ abstract class Base extends Service {
 		self::$api_args = self::$api->get_qb_data_service_args();
 	}
 
-	public function __construct() {}
+	public function __construct() {
+		add_action( 'zao_qbo_api_connect_updated_args', array( $this, 'update_api_args' ), 55 );
+	}
+
+	public function update_api_args( $args ) {
+		self::$api_args = $args;
+	}
 
 	public function get_service( $reset = false ) {
-		parent::__construct( self::$api_args );
+		parent::update_args( self::$api_args );
 		return parent::get_service( $reset );
 	}
 
