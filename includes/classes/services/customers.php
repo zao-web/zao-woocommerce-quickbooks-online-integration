@@ -351,7 +351,7 @@ class Customers extends UI_Base {
 		return $wc_user->save();
 	}
 
-	public function map_customer_address_fields( $wc_user, $address, $woo_address_type ) {
+	public static function map_customer_address_fields( $wc_user, $address, $woo_address_type ) {
 		$address_parts = array(
 			'Line1'                  => "set_{$woo_address_type}_address_1",
 			'City'                   => "set_{$woo_address_type}_city",

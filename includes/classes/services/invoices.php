@@ -167,7 +167,7 @@ class Invoices extends Base {
 			return false;
 		}
 
-		$args = $this->qb_object_args( $order );
+		$args = $this->qb_object_args( $order, true );
 		if ( is_wp_error( $args ) || ! $args ) {
 			return $args;
 		}
@@ -206,7 +206,7 @@ class Invoices extends Base {
 		return $result[1];
 	}
 
-	protected function qb_object_args( $wp_object ) {
+	protected function qb_object_args( $wp_object, $update = false ) {
 		$order          = $this->get_wp_object( $wp_object );
 		$qb_customer_id = $this->get_order_customer_id( $order->get_user_id() );
 		$customer       = $this->get_customer_by_id( $qb_customer_id );
@@ -316,7 +316,7 @@ class Invoices extends Base {
 		$args = apply_filters( 'zwqoi_discount_lines', $args, $order, $qb_customer_id, $customer );
 
 		// echo '<xmp>'. __LINE__ .') $customer: '. print_r( $customer, true ) .'</xmp>';
-		// error_log( __FUNCTION__ . ':' . __LINE__ .') $args: '. print_r( $args, true ) );
+		error_log( __FUNCTION__ . ':' . __LINE__ .') $args (update? '. ( $update ? '1' : '0' ) .'): '. print_r( $args, true ) );
 		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
 		return $args;
 	}
