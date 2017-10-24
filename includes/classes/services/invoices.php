@@ -328,10 +328,10 @@ class Invoices extends Base {
 
 		$line = array(
 			'Description'         => $item->get_name(),
-			'Amount'              => floatval( number_format( $item->get_total(), 2, '.', '' ) ),
+			'Amount'              => floatval( self::number_format( $item->get_total() ) ),
 			'DetailType'          => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
-				'UnitPrice' => $price ? number_format( $product->get_price(), 2, '.', '' ) : '0',
+				'UnitPrice' => $price ? self::number_format( $product->get_price() ) : '0',
 				'Qty'       => intval( max( 1, $item->get_quantity() ) ),
 			),
 		);
@@ -374,7 +374,7 @@ class Invoices extends Base {
 	}
 
 	protected function create_fee_line_from_item( $fee ) {
-		$total = number_format( $fee->get_total(), 2, '.', '' );
+		$total = self::number_format( $fee->get_total() );
 		$line = self::fee_line( $fee->get_name(), $total );
 
 		return apply_filters( 'zwqoi_fee_line', $line, $fee );
@@ -412,7 +412,7 @@ class Invoices extends Base {
 
 				$lines[] = self::fee_line(
 					$coupon_item->get_name(),
-					number_format( $coupon_item->get_discount(), 2, '.', '' )
+					self::number_format( $coupon_item->get_discount() )
 				);
 			}
 		}
@@ -440,7 +440,7 @@ class Invoices extends Base {
 		}
 
 		$line = array(
-			'Amount'      => floatval( number_format( $shipping_total, 2, '.', '' ) ),
+			'Amount'      => floatval( self::number_format( $shipping_total ) ),
 			'Description' => implode( '; ', $description ),
 			'DetailType'  => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
@@ -494,8 +494,8 @@ class Invoices extends Base {
 				if ( is_numeric( $value ) && is_numeric( $compare_value ) )  {
 					$float = false !== strpos( $value, '.' ) || false !== strpos( $compare_value, '.' );
 					if ( $float ) {
-						$value = number_format( $value, 2, '.', '' );
-						$compare_value = number_format( $compare_value, 2 , '.', '' );
+						$value = self::number_format( $value );
+						$compare_value = self::number_format( $compare_value );
 					} else {
 						$value = intval( $value );
 						$compare_value = intval( $compare_value );
@@ -658,4 +658,13 @@ class Invoices extends Base {
 
 		return $this->customer_objects[ $customer_id ];
 	}
+
+	/*
+	 * Utilities
+	 */
+
+	protected static function number_format( $value ) {
+		return number_format( floatval( $value ), 2, '.', '' );
+	}
+
 }
