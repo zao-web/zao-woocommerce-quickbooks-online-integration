@@ -234,6 +234,16 @@ class Invoices extends Base {
 			'Line' => array(),
 		);
 
+		$billing = self::get_formatted_billing_address( $order, $customer );
+		if ( ! empty( $billing ) ) {
+			$args['BillAddr'] = $billing;
+		}
+
+		$shipping = self::get_formatted_shipping_address( $order, $customer );
+		if ( ! empty( $shipping ) ) {
+			$args['ShipAddr'] = $shipping;
+		}
+
 		if ( empty( $args['CustomerRef']['value'] ) || empty( $args['BillEmail']['Address'] ) ) {
 			return false;
 		}
@@ -665,6 +675,99 @@ class Invoices extends Base {
 
 	protected static function number_format( $value ) {
 		return number_format( floatval( $value ), 2, '.', '' );
+	}
+
+	public static function get_formatted_billing_address( $order, $customer ) {
+		$address = self::get_formatted_address( $order->get_formatted_billing_address() );
+		if ( empty( $address ) ) {
+			$address = self::get_formatted_address_from_customer( $customer, 'BillAddr' );
+		}
+
+		return $address;
+	}
+
+	public static function get_formatted_shipping_address( $order, $customer ) {
+		$address = self::get_formatted_address( $order->get_formatted_shipping_address() );
+		if ( empty( $address ) ) {
+			$address = self::get_formatted_address_from_customer( $customer, 'ShipAddr' );
+		}
+
+		return $address;
+	}
+
+	public static function get_formatted_address_from_customer( $customer, $addressType ) {
+		$address_lines = array();
+		if ( empty( $customer->{$addressType} ) ) {
+			return $address_lines;
+		}
+
+		$to_check = array(
+			'Line1',
+			'Line2',
+			'Line3',
+			'Line4',
+			'Line5',
+		);
+
+		$count = 0;
+
+		$name = '';
+
+		if ( ! empty( $customer->GivenName ) ) {
+			$name .= $customer->GivenName;
+		}
+
+		if ( ! empty( $customer->FamilyName ) ) {
+			$name .= $name ? ' ' . $customer->FamilyName : $customer->FamilyName;
+		}
+
+		if ( ! empty( $name ) ) {
+			$address_lines['Line' . ( ++$count ) ] = $name;
+		}
+
+		if ( ! empty( $customer->CompanyName ) ) {
+			$address_lines['Line' . ( ++$count ) ] = $customer->CompanyName;
+		}
+
+		foreach ( $to_check as $part ) {
+			if ( ! empty( $customer->{$addressType}->{$part} ) ) {
+				$address_lines['Line' . ( ++$count ) ] = $customer->{$addressType}->{$part};
+			}
+		}
+
+		$combined = '';
+		if ( ! empty( $customer->{$addressType}->City ) ) {
+			$combined .= $customer->{$addressType}->City;
+		}
+
+		if ( ! empty( $customer->{$addressType}->CountrySubDivisionCode ) ) {
+			$combined .= $combined ? ', ' . $customer->{$addressType}->CountrySubDivisionCode : $customer->{$addressType}->CountrySubDivisionCode;
+		}
+
+		if ( ! empty( $customer->{$addressType}->PostalCode ) ) {
+			$combined .= $combined ? ' ' . $customer->{$addressType}->PostalCode : $customer->{$addressType}->PostalCode;
+		}
+
+		if ( ! empty( $combined ) ) {
+			$address_lines['Line' . ( ++$count ) ] = $combined;
+		}
+
+		if ( ! empty( $customer->{$addressType}->Country ) ) {
+			$address_lines['Line' . ( ++$count ) ] = $customer->{$addressType}->Country;
+		}
+
+		return $address_lines;
+	}
+
+	public static function get_formatted_address( $address ) {
+		if ( ! empty( $address ) ) {
+			$address_lines = array();
+			foreach ( explode( '<br/>', $address ) as $index => $line ) {
+				$address_lines[ 'Line' . ( $index + 1 ) ] = $line;
+			}
+
+			return $address_lines;
+		}
 	}
 
 }
