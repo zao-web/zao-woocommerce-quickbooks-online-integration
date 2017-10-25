@@ -326,7 +326,7 @@ class Invoices extends Base {
 		$args = apply_filters( 'zwqoi_discount_lines', $args, $order, $qb_customer_id, $customer );
 
 		// echo '<xmp>'. __LINE__ .') $customer: '. print_r( $customer, true ) .'</xmp>';
-		error_log( __FUNCTION__ . ':' . __LINE__ .') $args (update? '. ( $update ? '1' : '0' ) .'): '. print_r( $args, true ) );
+		// error_log( __FUNCTION__ . ':' . __LINE__ .') $args (update? '. ( $update ? '1' : '0' ) .'): '. print_r( $args, true ) );
 		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
 		return $args;
 	}
