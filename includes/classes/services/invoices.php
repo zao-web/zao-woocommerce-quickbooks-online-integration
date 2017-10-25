@@ -696,9 +696,9 @@ class Invoices extends Base {
 	}
 
 	public static function get_formatted_address_from_customer( $customer, $addressType ) {
-		$address_lines = array();
+		$lines = $address_lines = array();
 		if ( empty( $customer->{$addressType} ) ) {
-			return $address_lines;
+			return $lines;
 		}
 
 		$to_check = array(
@@ -708,8 +708,6 @@ class Invoices extends Base {
 			'Line4',
 			'Line5',
 		);
-
-		$count = 0;
 
 		$name = '';
 
@@ -722,16 +720,16 @@ class Invoices extends Base {
 		}
 
 		if ( ! empty( $name ) ) {
-			$address_lines['Line' . ( ++$count ) ] = $name;
+			$lines[] = $name;
 		}
 
 		if ( ! empty( $customer->CompanyName ) ) {
-			$address_lines['Line' . ( ++$count ) ] = $customer->CompanyName;
+			$lines[] = $customer->CompanyName;
 		}
 
 		foreach ( $to_check as $part ) {
 			if ( ! empty( $customer->{$addressType}->{$part} ) ) {
-				$address_lines['Line' . ( ++$count ) ] = $customer->{$addressType}->{$part};
+				$lines[] = $customer->{$addressType}->{$part};
 			}
 		}
 
@@ -749,11 +747,20 @@ class Invoices extends Base {
 		}
 
 		if ( ! empty( $combined ) ) {
-			$address_lines['Line' . ( ++$count ) ] = $combined;
+			$lines[] = $combined;
 		}
 
 		if ( ! empty( $customer->{$addressType}->Country ) ) {
-			$address_lines['Line' . ( ++$count ) ] = $customer->{$addressType}->Country;
+			$lines[] = $customer->{$addressType}->Country;
+		}
+
+		$lines = array_unique( $lines );
+		foreach ( $parts as $index => $line ) {
+			$line_num = $index + 1;
+			if ( $line_num > 5 ) {
+				break;
+			}
+			$address_lines[ 'Line' . $line_num ] = $line;
 		}
 
 		return $address_lines;
@@ -762,8 +769,13 @@ class Invoices extends Base {
 	public static function get_formatted_address( $address ) {
 		if ( ! empty( $address ) ) {
 			$address_lines = array();
-			foreach ( explode( '<br/>', $address ) as $index => $line ) {
-				$address_lines[ 'Line' . ( $index + 1 ) ] = $line;
+			$parts = array_unique( explode( '<br/>', $address ) );
+			foreach ( $parts as $index => $line ) {
+				$line_num = $index + 1;
+				if ( $line_num > 5 ) {
+					break;
+				}
+				$address_lines[ 'Line' . $line_num ] = $line;
 			}
 
 			return $address_lines;
