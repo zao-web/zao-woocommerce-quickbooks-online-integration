@@ -760,7 +760,7 @@ class Invoices extends Base {
 			if ( $line_num > 5 ) {
 				break;
 			}
-			$address_lines[ 'Line' . $line_num ] = $line;
+			$address_lines[ 'Line' . $line_num ] = html_entity_decode( $line );
 		}
 
 		return $address_lines;
@@ -775,7 +775,7 @@ class Invoices extends Base {
 				if ( $line_num > 5 ) {
 					break;
 				}
-				$address_lines[ 'Line' . $line_num ] = $line;
+				$address_lines[ 'Line' . $line_num ] = html_entity_decode( $line );
 			}
 
 			return $address_lines;
