@@ -299,11 +299,18 @@ class Invoices extends Base {
 
 		// Add the discount line items.
 		if ( ! empty( $discount_total ) ) {
-			$lines = $this->create_discount_lines( $discount_total, $order->get_items( 'coupon' ) );
-				foreach ( $lines as $line ) {
-					$line['LineNum'] = ++$linenums;
-					$args['Line'][] = $line;
-				}
+			$coupon_lines = $order->get_items( 'coupon' );
+			$lines = $this->create_discount_lines( $discount_total, $coupon_lines );
+			foreach ( $lines as $line ) {
+				$line['LineNum'] = ++$linenums;
+				$args['Line'][] = $line;
+			}
+
+			$summary = $this->get_coupon_summary( $coupon_lines, $order );
+
+			if ( ! empty( $summary ) ) {
+				$args['CustomerMemo'] = $summary;
+			}
 		}
 
 		if ( ! empty( $shipping_lines ) ) {
@@ -484,6 +491,39 @@ class Invoices extends Base {
 		);
 
 		return apply_filters( 'zwqoi_shipping_line', $line, $shipping_items );
+	}
+
+	protected function get_coupon_summary( $coupon_lines, $order ) {
+		$summary = array();
+
+		if ( ! empty( $coupon_lines ) ) {
+			foreach ( $coupon_lines as $coupon_item ) {
+				$coupon = new \WC_Coupon( $coupon_item->get_code() );
+
+				if ( ! $coupon->is_valid() ) {
+					continue;
+				}
+
+				$discount = $coupon->is_type( 'percent' )
+					? $coupon->get_amount() . '%'
+					: self::price_with_currency( $coupon_item->get_discount(), array(
+						'currency' => $order->get_currency()
+					) );
+
+				$summary[] = sprintf(
+					__( '- "%s", %s off order', 'zwqoi' ),
+					esc_attr( $coupon_item->get_name() ),
+					esc_attr( $discount )
+				);
+			}
+		}
+
+		$summary = implode( "\n", $summary );
+		if ( ! empty( $summary ) ) {
+			$summary = __( 'Applied Coupons:', 'zwqoi' ) . "\n" . $summary;
+		}
+
+		return apply_filters( 'zwqoi_coupon_summary', $summary, $coupon_lines, $order );
 	}
 
 	public function has_changes( $args, $compare ) {
@@ -803,6 +843,10 @@ class Invoices extends Base {
 
 			return $address_lines;
 		}
+	}
+
+	public static function price_with_currency( $price, $args = array() ) {
+		return strip_tags( html_entity_decode( wc_price( $price, $args ) ) );
 	}
 
 }
