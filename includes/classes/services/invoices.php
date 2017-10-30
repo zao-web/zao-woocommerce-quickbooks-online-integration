@@ -21,6 +21,10 @@ class Invoices extends Base {
 		add_action( 'all_admin_notices', array( $this, 'maybe_output_invoice_error' ) );
 		add_action( 'woocommerce_new_order', array( $this, 'store_invoice_order_ids' ), 10, 2 );
 		add_action( 'woocommerce_update_order', array( $this, 'store_invoice_order_ids' ), 10, 2 );
+
+		// if ( isset( $_GET['debug_invoice'] ) ) {
+		// 	add_action( 'woocommerce_admin_order_data_after_order_details', array( $this, 'maybe_sync_invoice' ) );
+		// }
 	}
 
 	public function maybe_output_invoice_error() {
@@ -187,6 +191,10 @@ class Invoices extends Base {
 		$args['sparse'] = true;
 
 		$result = $this->update( $invoice, $args );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
 		$error  = $this->get_error();
 
 		if ( $error ) {
@@ -265,8 +273,8 @@ class Invoices extends Base {
 		// and add values to add as line item with SHIPPING_ITEM_ID itemref
 		$shipping_lines = $order->get_items( 'shipping' );
 
-		// Add values to add as line item with DetailType DiscountLineDetail
-		$coupon_lines = $order->get_items( 'coupon' );
+		// Add as line item with DetailType DiscountLineDetail
+		$discount_total = $order->get_discount_total();
 
 		// TODO: implement taxes someday
 		// $tax_lines = $order->get_items( 'tax' );
@@ -289,15 +297,14 @@ class Invoices extends Base {
 			}
 		}
 
-		// TODO; Maybe Wait for coupon improvements in WC 3.2,
-		// https://woocommerce.wordpress.com/2017/08/24/coupon-and-cart-improvements-in-3-2/.
-		// if ( ! empty( $coupon_lines ) ) {
-		// 	$lines = $this->create_discount_lines_from_coupon_items( $coupon_lines );
-		// 	foreach ( $lines as $line ) {
-		// 		$line['LineNum'] = ++$linenums;
-		// 		$args['Line'][] = $line;
-		// 	}
-		// }
+		// Add the discount line items.
+		if ( ! empty( $discount_total ) ) {
+			$lines = $this->create_discount_lines( $discount_total, $order->get_items( 'coupon' ) );
+				foreach ( $lines as $line ) {
+					$line['LineNum'] = ++$linenums;
+					$args['Line'][] = $line;
+				}
+		}
 
 		if ( ! empty( $shipping_lines ) ) {
 			$shipping_line = $this->create_shipping_line_from_items( $shipping_lines );
@@ -326,8 +333,10 @@ class Invoices extends Base {
 		$args = apply_filters( 'zwqoi_discount_lines', $args, $order, $qb_customer_id, $customer );
 
 		// echo '<xmp>'. __LINE__ .') $customer: '. print_r( $customer, true ) .'</xmp>';
+		// if ( isset( $_GET['debug_invoice'] ) ) {
+		// 	wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
+		// }
 		// error_log( __FUNCTION__ . ':' . __LINE__ .') $args (update? '. ( $update ? '1' : '0' ) .'): '. print_r( $args, true ) );
-		// wp_die( '<xmp>'. __LINE__ .') $args: '. print_r( $args, true ) .'</xmp>' );
 		return $args;
 	}
 
@@ -335,10 +344,12 @@ class Invoices extends Base {
 		$product      = $parent = $item->get_product();
 		$is_variation = 'variation' === $product->get_type();
 		$price        = $product->get_price();
+		// Use subtotal, QB calculates coupons separately.
+		$total        = $item->get_subtotal();
 
 		$line = array(
 			'Description'         => $item->get_name(),
-			'Amount'              => floatval( self::number_format( $item->get_total() ) ),
+			'Amount'              => floatval( self::number_format( $total ) ),
 			'DetailType'          => 'SalesItemLineDetail',
 			'SalesItemLineDetail' => array(
 				'UnitPrice' => $price ? self::number_format( $product->get_price() ) : '0',
@@ -404,39 +415,51 @@ class Invoices extends Base {
 		);
 	}
 
-	protected function create_discount_lines_from_coupon_items( $coupon_lines ) {
-		$lines = array();
+	protected function create_discount_lines( $discount_total, $coupon_lines ) {
+		$lines         = array();
 		$total_percent = 0;
 
-		foreach ( $coupon_lines as $coupon_item ) {
-			$coupon = new \WC_Coupon( $coupon_item->get_code() );
+		$line = array(
+			'Description'        => __( 'Discounts', 'zwqoi' ),
+			'DetailType'         => 'DiscountLineDetail',
+			'Amount'             => $discount_total,
+			'DiscountLineDetail' => array(
+				'PercentBased' => false,
+			),
+		);
 
-			if ( ! $coupon->is_valid() ) {
-				continue;
+		if ( ! empty( $coupon_lines ) ) {
+			$coupon_names  = array();
+			$percent_based = true;
+
+			foreach ( $coupon_lines as $coupon_item ) {
+				$coupon = new \WC_Coupon( $coupon_item->get_code() );
+
+				if ( ! $coupon->is_valid() ) {
+					continue;
+				}
+
+				$coupon_names[] = $coupon_item->get_name();
+
+				if ( ! $coupon->is_type( 'percent' ) ) {
+					$percent_based = false;
+				} elseif ( $percent_based ) {
+					$total_percent += $coupon->get_amount();
+				}
 			}
 
-			if ( $coupon->is_type( 'percent' ) ) {
-				$total_percent += $coupon_item->get_discount();
+			if ( $percent_based ) {
+				unset( $line['Amount'] );
+				$line['DiscountLineDetail']['PercentBased']    = true;
+				$line['DiscountLineDetail']['DiscountPercent'] = $total_percent;
+			}
 
-			} else {
-
-				$lines[] = self::fee_line(
-					$coupon_item->get_name(),
-					self::number_format( $coupon_item->get_discount() )
-				);
+			if ( ! empty( $coupon_names ) ) {
+				$line['Description'] = sprintf( __( 'Coupon Discounts: %s', 'zwqoi' ), implode( ', ', $coupon_names ) );
 			}
 		}
 
-		if ( ! empty( $total_percent ) ) {
-			$lines[] = array(
-				'Description'         => __( 'Coupon(s)', 'zwqoi' ),
-				'DetailType'          => 'DiscountLineDetail',
-				'DiscountLineDetail' => array(
-					'PercentBased' => true,
-					'DiscountPercent' => $total_percent,
-				),
-			);
-		}
+		$lines[] = $line;
 
 		return apply_filters( 'zwqoi_discount_lines', $lines, $coupon_lines );
 	}
