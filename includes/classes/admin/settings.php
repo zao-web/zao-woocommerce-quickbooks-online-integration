@@ -30,7 +30,7 @@ class Settings extends Base {
 		add_filter( 'zwqoi_role_for_customer_user', array( __CLASS__, 'maybe_set_wholesaler_role' ) );
 		add_action( 'zwqoi_new_product_from_quickbooks', array( __CLASS__, 'maybe_set_wholesale_category' ) );
 		add_filter( 'zwoowh_set_wholesale_users_args', array( __CLASS__, 'maybe_limit_wholesalers_to_customers' ) );
-		add_filter( 'zwqoi_create_invoice_from_order', array( $this, 'maybe_only_generate_invoices_for_wholesale_orders' ), 5, 2 );
+		add_filter( 'zwqoi_sync_invoice_from_order', array( $this, 'maybe_only_generate_invoices_for_wholesale_orders' ), 5, 2 );
 
 		if ( function_exists( 'qbo_connect_ui' ) && is_object( qbo_connect_ui()->settings ) ) {
 			add_filter( 'zwqoi_settings_nav_links', array( $this, 'add_connect_link' ), 20 );
@@ -168,7 +168,7 @@ class Settings extends Base {
 
 		$this->cmb->add_field( array(
 			'name'       => __( 'Enable invoice creation for every order', 'zwqoi' ),
-			'after'       => '<p class="cmb2-metabox-description">' . __( 'If enabled, all orders will generate a corresponding QuickBooks Invoice, and auto-create an associated QuickBooks Customer from the order customer.', 'zwqoi' )  . '</p><p>' . __( '<strong>WARNING:</strong> this could cause severe performance bottlenecks for stores with heavy order-volume. It is only recommended you check this if you have a low order-volume store.', 'zwqoi' )  . '</p><p class="cmb2-metabox-description">' . __( 'It is instead recommended to use the <code>zwqoi_create_invoice_from_order</code> filter to conditionally enable on a per order basis.', 'zwqoi' )  . '</p>',
+			'after'       => '<p class="cmb2-metabox-description">' . __( 'If enabled, all orders will generate a corresponding QuickBooks Invoice, and auto-create an associated QuickBooks Customer from the order customer.', 'zwqoi' )  . '</p><p>' . __( '<strong>WARNING:</strong> this could cause severe performance bottlenecks for stores with heavy order-volume. It is only recommended you check this if you have a low order-volume store.', 'zwqoi' )  . '</p><p class="cmb2-metabox-description">' . __( 'It is instead recommended to use the <code>zwqoi_sync_invoice_from_order</code> filter to conditionally enable on a per order basis.', 'zwqoi' )  . '</p>',
 			'id'         => 'invoice_all_orders',
 			'type'       => 'checkbox',
 		) );
@@ -432,23 +432,26 @@ class Settings extends Base {
 		return $args;
 	}
 
-	public function maybe_only_generate_invoices_for_wholesale_orders( $should_create_invoice, $order_id ) {
+	public function maybe_only_generate_invoices_for_wholesale_orders( $should_create_invoice, $order ) {
+		// Don't want to override if it is already set to false.
+		if ( ! $should_create_invoice ) {
+			return $should_create_invoice;
+		}
+
 		$should_create_invoice = (bool) self::get_option( 'invoice_all_orders' );
 
 		if ( self::has_wholesale_plugin() ) {
 			if ( self::get_option( 'disable_non_wholesale_invoices' ) ) {
 				$should_create_invoice = false;
 
-				$order = wc_get_order( $order_id );
-
-				if ( $order ) {
+				if ( is_object( $order ) ) {
 					$should_create_invoice = (bool) $order->get_meta( 'is_wholesale_order' );
 				}
 			}
 
 		} else {
 			// Allow invoice for orders which are already connected.
-			if ( $this->invoices->get_connected_qb_id( $order_id ) ) {
+			if ( ! $should_create_invoice && $this->invoices->get_connected_qb_id( $order ) ) {
 				$should_create_invoice = true;
 			}
 		}
