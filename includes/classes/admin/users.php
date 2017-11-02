@@ -70,7 +70,7 @@ class Users extends Connected_Object_Base {
 	}
 
 	public function maybe_output_quickbook_sync_button( $wp_object ) {
-		echo $wp_object->{$this->service->meta_key}
+		echo $this->service->get_connected_qb_id( $wp_object )
 			? '<h2>' . __( 'Connected Quickbooks Customer', 'zwqoi' ) . '</h2>'
 			: '<h2>' . __( 'Connect a Quickbooks Customer?', 'zwqoi' ) . '</h2>';
 

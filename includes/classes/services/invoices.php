@@ -626,16 +626,6 @@ class Invoices extends Base {
 		);
 	}
 
-	public function update_connected_qb_id( $wp_id, $meta_value ) {
-		$order = $this->get_wp_object( $wp_id );
-		if ( ! $order ) {
-			return false;
-		}
-
-		$order->update_meta_data( $this->meta_key, $meta_value );
-		return $order->save_meta_data();
-	}
-
 	public function search_query_format( $search_type ) {
 		return "SELECT * FROM Invoice WHERE Id = %s";
 	}
@@ -694,6 +684,16 @@ class Invoices extends Base {
 		}
 
 		$order->delete_meta_data( $this->meta_key );
+		return $order->save_meta_data();
+	}
+
+	public function update_connected_qb_id( $wp_id, $meta_value ) {
+		$order = $this->get_wp_object( $wp_id );
+		if ( ! $order ) {
+			return false;
+		}
+
+		$order->update_meta_data( $this->meta_key, $meta_value );
 		return $order->save_meta_data();
 	}
 

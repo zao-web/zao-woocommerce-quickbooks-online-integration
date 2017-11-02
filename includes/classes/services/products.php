@@ -192,16 +192,6 @@ class Products extends UI_Base {
 		return $updated;
 	}
 
-	public function update_connected_qb_id( $wp_id, $meta_value ) {
-		if ( ! ( $wp_id instanceof WC_Product ) ) {
-			return false;
-		}
-
-		$wp_id->update_meta_data( $this->meta_key, $meta_value );
-
-		return $wp_id;
-	}
-
 	public function add_custom_new_product_hook( $product_id ) {
 		do_action( 'zwqoi_new_product_from_quickbooks', $product_id, $this );
 	}
@@ -239,6 +229,31 @@ class Products extends UI_Base {
 		}
 
 		return $result[1];
+	}
+
+	public function disconnect_qb_object( $wp_id ) {
+		$product = $this->get_wp_object( $wp_id );
+		if ( ! $product ) {
+			return false;
+		}
+
+		$product->delete_meta_data( $this->meta_key );
+		return $product->save_meta_data();
+	}
+
+	public function get_connected_qb_id( $wp_id ) {
+		$product = $this->get_wp_object( $wp_id );
+		return $product ? $product->get_meta( $this->meta_key ) : false;
+	}
+
+	public function update_connected_qb_id( $wp_id, $meta_value ) {
+		$product = $this->get_wp_object( $wp_id );
+		if ( ! $product ) {
+			return false;
+		}
+
+		$product->update_meta_data( $this->meta_key, $meta_value );
+		return $product->save_meta_data();
 	}
 
 	public function update_qb_object_with_wp_object( $qb_object, $wp_object ) {
@@ -401,6 +416,10 @@ class Products extends UI_Base {
 	}
 
 	public function get_wp_object( $wp_id ) {
+		if ( $wp_id instanceof WP_Post ) {
+			$wp_id = wc_get_product( $wp_id->ID );
+		}
+
 		return $this->is_wp_object( $wp_id ) ? $wp_id : wc_get_product( absint( $wp_id ) );
 	}
 

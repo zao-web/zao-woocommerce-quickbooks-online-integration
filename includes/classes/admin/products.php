@@ -21,10 +21,9 @@ class Products extends Connected_Object_Base {
 	}
 
 	public function register_metabox() {
-		$post = self::_param( $this->id_query_var );
-		$post = $post ? get_post( $post ) : false;
+		$post_id = self::_param( $this->id_query_var );
 
-		$title = $post && $post->{$this->service->meta_key}
+		$title = $this->service->get_connected_qb_id( $post_id )
 			? __( 'Connected Quickbooks Product', 'zwqoi' )
 			: __( 'Connect a Quickbooks Product?', 'zwqoi' );
 
@@ -50,6 +49,7 @@ class Products extends Connected_Object_Base {
 			$meta_query = array();
 		}
 
+		// TODO: This query modification may need to be changed if/when Products are not post-types?
 		$meta_query[] = array(
 			'key'     => $this->service->meta_key,
 			'compare' => 'EXISTS',

@@ -79,11 +79,11 @@ abstract class Connected_Object_Base extends Base {
 	}
 
 	public function output_connected_qb_buttons( $wp_object ) {
-		$this->wp_object = $wp_object;
-		$qb_id = $wp_object->{$this->service->meta_key};
+		$this->wp_object = $this->service->get_wp_object( $wp_object );
+		$qb_id = $this->service->get_connected_qb_id( $this->wp_object );
 
 		if ( $qb_id ) {
-			echo $this->maybe_get_quickbooks_sync_button( $wp_object->{$this->service->meta_key} );
+			echo $this->maybe_get_quickbooks_sync_button( $qb_id );
 		} else {
 			echo '<p>' . $this->connect_qb_button( array(
 				'search_term' => $this->service->get_wp_name( $this->wp_object ),

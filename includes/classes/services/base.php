@@ -186,6 +186,7 @@ abstract class Base extends Service {
 	}
 
 	public function query_wp_by_qb_id( $qb_id ) {
+		// TODO: This query may need to be changed if/when WC objects are not post-types?
 		$args = array(
 			'meta_key'      => $this->meta_key,
 			'meta_value'    => $qb_id,
@@ -204,6 +205,7 @@ abstract class Base extends Service {
 	}
 
 	public function query_wp_by_qb_ids( $qb_ids, $key_value = true ) {
+		// TODO: This query may need to be changed if/when WC objects are not post-types?
 		$args = array(
 			'meta_query' => array(
 				array(
@@ -229,7 +231,8 @@ abstract class Base extends Service {
 
 		$existing = array();
 		foreach ( $by_id->posts as $product ) {
-			$existing[ $product->{$this->meta_key} ] = $product->ID;
+			$qb_id = $this->get_connected_qb_id( $product );
+			$existing[ $qb_id ] = $product->ID;
 		}
 
 		return $existing;
