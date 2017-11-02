@@ -9,6 +9,7 @@
  * Text Domain: zwqoi
  * Domain Path: /languages
  * License:     GPL-2.0+
+ * WC tested up to: 3.2.0
  */
 
 /**
