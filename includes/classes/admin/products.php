@@ -38,7 +38,7 @@ class Products extends Connected_Object_Base {
 
 		echo '
 			<label>
-				<input type="checkbox" value="1" name="qb_connected" id="connected-to-qb" ' , checked( self::_param( 'qb_connected' ) ) , '/>
+				<input style="line-height: 0;height: 16px;" type="checkbox" value="1" name="qb_connected" id="connected-to-qb" ' , checked( self::_param( 'qb_connected' ) ) , '/>
 				&nbsp' . __( 'QuickBooks Connected', 'zwqoi' ) . '
 			</label>
 		';
