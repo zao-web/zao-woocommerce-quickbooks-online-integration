@@ -292,6 +292,11 @@ abstract class UI_Base extends Base {
 				false === strpos( $search_term, '%' ) ? "%$search_term%" : $search_term
 			);
 
+			if ( is_callable( array( $wpdb, 'remove_placeholder_escape' ) ) ) {
+				// https://make.wordpress.org/core/2017/10/31/changed-behaviour-of-esc_sql-in-wordpress-4-8-3/
+				$query = $wpdb->remove_placeholder_escape( $query );
+			}
+
 			$results = $this->query( $query );
 			$error   = $this->get_error();
 
