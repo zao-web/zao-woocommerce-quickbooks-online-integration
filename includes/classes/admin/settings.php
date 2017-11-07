@@ -48,11 +48,11 @@ class Settings extends Base {
 	 *
 	 * @return bool
 	 */
-	public static function is_connected() {
+	public static function token_acquired() {
 		return (
 			function_exists( 'qbo_connect_ui' )
 			&& is_object( qbo_connect_ui()->api )
-			&& qbo_connect_ui()->api->connected()
+			&& qbo_connect_ui()->api->token_acquired()
 		);
 	}
 
@@ -155,7 +155,7 @@ class Settings extends Base {
 			'menu_title'   => esc_html__( 'QB Woo Integration', 'zwqoi' ),
 			'parent_slug'  => 'options-general.php',
 			'display_cb'   => array( $this, 'options_page_output' ),
-			'show_on_cb'   => array( __CLASS__, 'is_connected' ),
+			'show_on_cb'   => array( __CLASS__, 'token_acquired' ),
 			'capability'   => apply_filters( 'zwqoi_search_page_permission_level', 'edit_pages', $this ), // Cap required to view options-page.
 		) );
 
