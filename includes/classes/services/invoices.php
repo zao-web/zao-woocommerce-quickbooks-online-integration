@@ -22,6 +22,10 @@ class Invoices extends Base {
 		add_action( 'woocommerce_new_order', array( $this, 'store_invoice_order_ids' ), 10, 2 );
 		add_action( 'woocommerce_update_order', array( $this, 'store_invoice_order_ids' ), 10, 2 );
 
+		add_filter( 'zwqoi_sync_invoice_from_order', array( __CLASS__, 'check_if_invoice_all_orders' ), 7 );
+		add_filter( 'zwqoi_sync_invoice_from_order', array( __CLASS__, 'check_if_invoice_only_wholesale_orders' ), 8, 2 );
+		add_filter( 'zwqoi_sync_invoice_from_order', array( __CLASS__, 'disable_invoice_sync_for_completed_orders' ), 20, 2 );
+
 		// if ( isset( $_GET['debug_invoice'] ) ) {
 		// 	add_action( 'woocommerce_admin_order_data_after_order_details', array( $this, 'maybe_sync_invoice' ) );
 		// }
@@ -72,21 +76,23 @@ class Invoices extends Base {
 	}
 
 	public function maybe_sync_invoice( $order_id ) {
-		$order = $this->get_wp_object( $order_id );
+		$order      = $this->get_wp_object( $order_id );
+		$invoice_id = $this->get_connected_qb_id( $order_id );
+		$do_sync    = ! empty( $invoice_id );
 
-		// Do not sync when the order is completed.
-		$do_sync = 'completed' !== $order->get_status();
+		// The following hooks are applied:
+		// self::check_if_invoice_all_orders(), 7
+		// self::check_if_invoice_only_wholesale_orders(), 8
+		// self::disable_invoice_sync_for_completed_orders()', 20
+		$do_sync = apply_filters( 'zwqoi_sync_invoice_from_order', $do_sync, $order );
 
-		if ( ! apply_filters( 'zwqoi_sync_invoice_from_order', $do_sync, $order ) ) {
+		if ( ! $do_sync ) {
 			return false;
 		}
 
-		$invoice_id = $this->get_connected_qb_id( $order_id );
-		$invoice    = null;
-
-		if ( $invoice_id ) {
-			$invoice = $this->get_by_id( $invoice_id );
-		}
+		$invoice = $invoice_id
+			? $this->get_by_id( $invoice_id )
+			: null;
 
 		if ( is_wp_error( $invoice ) ) {
 			$this->store_api_error( __( 'Invoice fetch error:', 'zwqoi' ), $invoice, $order );
@@ -103,6 +109,36 @@ class Invoices extends Base {
 		}
 
 		return $result;
+	}
+
+	public static function check_if_invoice_all_orders( $do_sync ) {
+		if ( ! $do_sync ) {
+			$do_sync = (bool) Settings::get_option( 'invoice_all_orders' );
+		}
+
+		return $do_sync;
+	}
+
+	public static function check_if_invoice_only_wholesale_orders( $do_sync, $order ) {
+		if ( Settings::has_wholesale_plugin() && Settings::get_option( 'disable_non_wholesale_invoices' ) ) {
+			$do_sync = false;
+
+			if ( is_object( $order ) ) {
+				$do_sync = $order->get_meta( 'is_wholesale_order' );
+			}
+		}
+
+		return $do_sync;
+	}
+
+	public static function disable_invoice_sync_for_completed_orders( $do_sync, $order ) {
+		if ( $do_sync ) {
+
+			// Do not sync when the order is completed.
+			$do_sync = 'completed' !== $order->get_status();
+		}
+
+		return $do_sync;
 	}
 
 	public function store_api_error( $title, $error, $order ) {
