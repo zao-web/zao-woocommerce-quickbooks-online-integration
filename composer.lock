@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "b64c33052c7954dd56b18249b21a99d3",
-    "content-hash": "447501017dd758f799cf2d2796b21ca7",
+    "hash": "85ad2624d8a0cbf250154909df114b15",
+    "content-hash": "738fab11b9a53c0c52de26a634167400",
     "packages": [],
     "packages-dev": [
         {
@@ -61,12 +61,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/CMB2/CMB2.git",
-                "reference": "f608b53ad5085d79dc02a46176bbdcff703b8edf"
+                "reference": "b1a7e8fb9f0634337b390a098f0a1f70f0f64085"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CMB2/CMB2/zipball/f608b53ad5085d79dc02a46176bbdcff703b8edf",
-                "reference": "f608b53ad5085d79dc02a46176bbdcff703b8edf",
+                "url": "https://api.github.com/repos/CMB2/CMB2/zipball/b1a7e8fb9f0634337b390a098f0a1f70f0f64085",
+                "reference": "b1a7e8fb9f0634337b390a098f0a1f70f0f64085",
                 "shasum": ""
             },
             "require": {
@@ -110,7 +110,7 @@
                 "plugin",
                 "wordpress"
             ],
-            "time": "2017-11-14 18:09:46"
+            "time": "2017-11-27 20:49:15"
         },
         {
             "name": "zao-web/qbo-connect",
@@ -159,7 +159,7 @@
         },
         {
             "name": "zao-web/qbo-connect-ui",
-            "version": "dev-master",
+            "version": "v0.2.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/zao-web/quickbooks-online-connect-ui.git",
@@ -206,9 +206,7 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "zao-web/qbo-connect-ui": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
